@@ -187,17 +187,17 @@
                                 <table style="width: 100%;">
                                     <tr>
                                         <td class="small" style="width: 64%;">
-                                            <strong t-out="statement['company'].name"/>
+                                            <strong t-out="html_text(statement['company'].name)"/>
                                             <br/>
-                                            <span t-out="statement['company_address']"/>
+                                            <span t-out="html_text(statement['company_address'])"/>
                                         </td>
                                         <td class="small">
                                             <strong>NIT:</strong>
-                                            <span t-out="statement['company'].vat or ''"/>
+                                            <span t-out="html_text(statement['company'].vat or '')"/>
                                             <br/>
                                             <t t-if="statement['bank_name']">
                                                 <strong>Banco:</strong>
-                                                <span t-out="statement['bank_name']"/>
+                                                <span t-out="html_text(statement['bank_name'])"/>
                                             </t>
                                         </td>
                                     </tr>
@@ -212,18 +212,19 @@
                     </table>
 
                     <div class="customer-block">
-                        <div class="customer-name" t-out="statement['partner'].name"/>
-                        <div t-out="statement['partner_address']"/>
-                        <div t-if="statement['partner'].vat" t-out="statement['partner'].vat"/>
+                        <div class="customer-name" t-out="html_text(statement['partner'].name)"/>
+                        <div t-out="html_text(statement['partner_address'])"/>
+                        <div t-if="statement['partner'].vat"
+                             t-out="html_text(statement['partner'].vat)"/>
                     </div>
                     <div class="customer-code">
-                        <strong>CÓDIGO:</strong>
-                        <span t-out="statement['partner_code']"/>
+                        <strong t-out="labels['code']"/>
+                        <span t-out="html_text(statement['partner_code'])"/>
                     </div>
 
                     <div class="period-bar">
                         <span class="period-label">Mes de Cobro:</span>
-                        <span class="period-value" t-out="statement['period_label']"/>
+                        <span class="period-value" t-out="html_text(statement['period_label'])"/>
                     </div>
 
                     <div class="section-title">Resumen de movimientos</div>
@@ -261,17 +262,17 @@
                             <tr>
                                 <th class="detail-date">Fecha de consumo</th>
                                 <th class="detail-document">No. Documento</th>
-                                <th class="detail-description">Descripción</th>
-                                <th class="detail-debit">Débitos</th>
-                                <th class="detail-credit">Créditos</th>
+                                <th class="detail-description" t-out="labels['description']"/>
+                                <th class="detail-debit" t-out="labels['debits']"/>
+                                <th class="detail-credit" t-out="labels['credits']"/>
                             </tr>
                         </thead>
                         <tbody>
                             <t t-if="statement['lines']">
                                 <tr t-foreach="statement['lines']" t-as="line">
-                                    <td t-out="line['date_label']"/>
-                                    <td t-out="line['document']"/>
-                                    <td t-out="line['description']"/>
+                                    <td t-out="html_text(line['date_label'])"/>
+                                    <td t-out="html_text(line['document'])"/>
+                                    <td t-out="html_text(line['description'])"/>
                                     <td class="amount">
                                         <span t-if="line['debit']" t-out="format_amount(line['debit'], statement['currency'])"/>
                                     </td>
@@ -294,8 +295,7 @@
                     <div class="footer-note">
                         Documento generado al
                         <span t-out="statement['generated_on']"/>.
-                        Si realizó un pago que no aparece en este estado de cuenta,
-                        comuníquese con el área de Contabilidad.
+                        <span t-out="labels['footer']"/>
                     </div>
                 </div>
             </t>

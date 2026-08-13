@@ -22,3 +22,11 @@ class TestMayanCustomerStatement(TransactionCase):
         summary = self.Wizard._compute_summary(100.0, 250.0, 50.0, 125.0)
         self.assertEqual(summary["subtotal_cargos"], 400.0)
         self.assertEqual(summary["saldo_corte"], 275.0)
+
+    def test_report_text_is_safe_ascii_html(self):
+        report = self.env[
+            "report.mayan_customer_statement.customer_statement_document"
+        ]
+        rendered = str(report._html_text("Jos\u00e9 & <Club>"))
+        self.assertEqual(rendered, "Jos&#233; &amp; &lt;Club&gt;")
+        self.assertTrue(rendered.isascii())
