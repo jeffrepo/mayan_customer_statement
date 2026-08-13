@@ -20,4 +20,8 @@ class MayanCustomerStatementReport(models.AbstractModel):
 
     @api.model
     def _format_amount(self, amount, currency):
-        return formatLang(self.env, amount, currency_obj=currency)
+        formatted = formatLang(self.env, amount, currency_obj=currency)
+        # wkhtmltopdf deployments with a legacy content-type can render the
+        # non-breaking space from formatLang as "Â ". A regular space keeps the
+        # amount readable without changing its numeric or currency formatting.
+        return formatted.replace("\u00a0", " ").replace("\u202f", " ")

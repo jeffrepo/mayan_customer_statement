@@ -1,7 +1,7 @@
 {
     "name": "Estado de cuenta de clientes - Mayan Golf",
     "summary": "Estado de cuenta mensual de clientes con consumos POS y recargos",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Accounting/Accounting",
     "license": "LGPL-3",
     "depends": [

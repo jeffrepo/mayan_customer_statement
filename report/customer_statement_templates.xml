@@ -1,7 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <template id="customer_statement_layout">
+        &lt;!DOCTYPE html&gt;
+        <html t-att-lang="lang and lang.replace('_', '-')"
+              t-att-data-report-margin-top="data_report_margin_top"
+              t-att-data-report-header-spacing="data_report_header_spacing"
+              t-att-data-report-dpi="data_report_dpi"
+              t-att-data-report-landscape="data_report_landscape"
+              t-att-web-base-url="web_base_url">
+            <head>
+                <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+                <meta charset="UTF-8"/>
+                <meta name="viewport" content="initial-scale=1"/>
+                <title><t t-out="title or 'Estado de cuenta Mayan'"/></title>
+                <t t-call-assets="web.report_assets_common"/>
+            </head>
+            <body class="o_body_html container overflow-x-hidden"
+                  t-att-dir="env['res.lang']._get_data(code=lang or env.user.lang).direction or 'ltr'">
+                <div id="wrapwrap">
+                    <main>
+                        <t t-out="0"/>
+                    </main>
+                </div>
+            </body>
+        </html>
+    </template>
+
     <template id="customer_statement_document">
-        <t t-call="web.html_container">
+        <t t-call="mayan_customer_statement.customer_statement_layout">
             <style>
                 .mayan-statement {
                     color: #171717;
