@@ -1,6 +1,7 @@
 # Estado de cuenta de clientes - Mayan Golf
 
-Repositorio para el addon Odoo 18 `mayan_customer_statement`.
+Repositorio para el addon Odoo 18 `mayan_customer_statement`. La raíz de este
+repositorio es directamente la raíz del addon.
 
 ## Alcance
 
@@ -50,8 +51,9 @@ anteriores al primer día del mes solicitado.
 
 ## Instalación
 
-1. Copiar la carpeta interna `mayan_customer_statement` a una ruta de addons de
-   Odoo 18.
+1. Clonar o copiar este repositorio directamente como
+   `<ruta_addons>/mayan_customer_statement` en Odoo 18; no requiere una carpeta
+   interna adicional.
 2. Actualizar la lista de aplicaciones.
 3. Instalar **Estado de cuenta de clientes - Mayan Golf**.
 4. Verificar que los métodos POS de crédito tengan habilitado **Identificar
