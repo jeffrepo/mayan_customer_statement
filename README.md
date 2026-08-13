@@ -46,8 +46,15 @@ línea denominada `Recargo`.
 ### Pagos
 
 Se incluyen pagos de cliente recibidos y notas de crédito de cliente del
-periodo. El saldo anterior aplica las mismas reglas a todos los movimientos
-anteriores al primer día del mes solicitado.
+periodo.
+
+### Fórmulas del resumen
+
+- **Saldo anterior:** todas las facturas del cliente menos notas de crédito y
+  pagos anteriores al primer día del mes solicitado. Para las facturas se
+  respeta `fecha_estado_cuenta` cuando está informada.
+- **Subtotal cargos:** compras y cadis + otros cargos.
+- **Saldo al corte:** saldo anterior + subtotal cargos - pagos.
 
 ## Instalación
 

@@ -20,8 +20,13 @@ class TestMayanCustomerStatement(TransactionCase):
 
     def test_summary_formula(self):
         summary = self.Wizard._compute_summary(100.0, 250.0, 50.0, 125.0)
-        self.assertEqual(summary["subtotal_cargos"], 400.0)
+        self.assertEqual(summary["subtotal_cargos"], 300.0)
         self.assertEqual(summary["saldo_corte"], 275.0)
+
+    def test_summary_matches_july_comparison(self):
+        summary = self.Wizard._compute_summary(7018.40, 3016.20, 0.0, 10468.70)
+        self.assertEqual(summary["subtotal_cargos"], 3016.20)
+        self.assertAlmostEqual(summary["saldo_corte"], -434.10, places=2)
 
     def test_report_text_is_safe_ascii_html(self):
         report = self.env[

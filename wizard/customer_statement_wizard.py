@@ -90,14 +90,14 @@ class MayanCustomerStatementWizard(models.TransientModel):
 
     @api.model
     def _compute_summary(self, previous_balance, purchases, other_charges, payments):
-        subtotal = previous_balance + purchases + other_charges
+        subtotal = purchases + other_charges
         return {
             "saldo_anterior": previous_balance,
             "compras_cadis": purchases,
             "otros_cargos": other_charges,
             "subtotal_cargos": subtotal,
             "pagos": payments,
-            "saldo_corte": subtotal - payments,
+            "saldo_corte": previous_balance + subtotal - payments,
         }
 
     def _build_statements(self):
@@ -148,9 +148,13 @@ class MayanCustomerStatementWizard(models.TransientModel):
             is_credit_note = move.move_type == "out_refund"
 
             if effective_date < date_from:
-                if is_purchase or is_other_charge:
+                # El saldo inicial debe arrastrar toda la cuenta por cobrar del
+                # cliente, no solo las dos categorías mostradas en el mes. Los
+                # pagos históricos también abarcan la cuenta completa; excluir
+                # cuotas u otras facturas generaría un saldo negativo artificial.
+                if move.move_type == "out_invoice":
                     previous_balance += amount
-                elif is_credit_note:
+                elif move.move_type == "out_refund":
                     previous_balance -= amount
                 continue
 
