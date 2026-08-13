@@ -77,3 +77,39 @@ odoo-bin -d NOMBRE_BD -u mayan_customer_statement --stop-after-init
 Antes de producción, comparar un cliente y un mes contra el reporte histórico
 de Mayan, verificando especialmente facturas con `fecha_estado_cuenta`, pagos
 multimoneda, notas de crédito y órdenes POS con varios métodos de pago.
+
+### Diagnóstico de continuidad mensual
+
+El script `scripts/diagnose_statement_rollforward.py` compara, sin modificar
+datos, el saldo al corte de un mes contra el saldo anterior del mes siguiente.
+También lista:
+
+- facturas y notas de crédito con su clasificación en el reporte;
+- facturas que entran al saldo histórico, pero no a los cargos del mes;
+- pagos incluidos y pagos excluidos por estado o importe;
+- apuntes del mayor contable de cuentas por cobrar;
+- diferencias contra importes de un reporte histórico, si se proporcionan.
+
+Primero actualice el addon en la base de datos. Para diagnosticar al socio 1836
+en junio de 2026 y compararlo con el reporte histórico entregado:
+
+```bash
+STATEMENT_PARTNER_CODE=1836 \
+STATEMENT_YEAR=2026 \
+STATEMENT_MONTH=6 \
+STATEMENT_REFERENCE_OPENING=7811.10 \
+STATEMENT_REFERENCE_CHARGES=10468.70 \
+STATEMENT_REFERENCE_PAYMENTS=11261.40 \
+STATEMENT_REFERENCE_CLOSING=7018.40 \
+odoo-bin shell -d NOMBRE_BD \
+  < scripts/diagnose_statement_rollforward.py
+```
+
+Esa referencia histórica incluye el recibo `PPCRCC/2026/00587` por Q 7,811.10.
+El diagnóstico permitirá confirmar si existe en `account.payment`, si su estado
+lo excluye del reporte nuevo o si únicamente aparece en el mayor de cuentas por
+cobrar.
+
+La compañía predeterminada es la compañía activa del entorno de Odoo. Se puede
+indicar otra con `STATEMENT_COMPANY_ID`. También se puede seleccionar el cliente
+directamente con `STATEMENT_PARTNER_ID`, que tiene prioridad sobre el código.
