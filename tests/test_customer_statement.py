@@ -24,9 +24,28 @@ class TestMayanCustomerStatement(TransactionCase):
         self.assertEqual(summary["saldo_corte"], 275.0)
 
     def test_summary_matches_july_comparison(self):
-        summary = self.Wizard._compute_summary(7018.40, 3016.20, 0.0, 10468.70)
-        self.assertEqual(summary["subtotal_cargos"], 3016.20)
-        self.assertAlmostEqual(summary["saldo_corte"], -434.10, places=2)
+        summary = self.Wizard._compute_summary(
+            7018.40,
+            3016.20,
+            4441.30,
+            10728.40,
+        )
+        self.assertAlmostEqual(summary["subtotal_cargos"], 7457.50, places=2)
+        self.assertAlmostEqual(summary["saldo_corte"], 3747.50, places=2)
+
+    def test_all_non_pos_invoices_are_other_charges(self):
+        self.assertEqual(
+            self.Wizard._statement_move_category("out_invoice", True),
+            "purchase",
+        )
+        self.assertEqual(
+            self.Wizard._statement_move_category("out_invoice", False),
+            "other_charge",
+        )
+        self.assertEqual(
+            self.Wizard._statement_move_category("out_refund", False),
+            "credit_note",
+        )
 
     def test_report_text_is_safe_ascii_html(self):
         report = self.env[

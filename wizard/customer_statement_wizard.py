@@ -144,8 +144,10 @@ class MayanCustomerStatementWizard(models.TransientModel):
                     for order in pos_orders
                 )
             )
-            is_other_charge = self._is_recargo_move(move)
-            is_credit_note = move.move_type == "out_refund"
+            category = self._statement_move_category(
+                move.move_type,
+                is_purchase,
+            )
 
             if effective_date < date_from:
                 # El saldo inicial debe arrastrar toda la cuenta por cobrar del
@@ -158,13 +160,13 @@ class MayanCustomerStatementWizard(models.TransientModel):
                     previous_balance -= amount
                 continue
 
-            if is_purchase:
+            if category == "purchase":
                 purchases += amount
                 lines.append(self._move_line(move, effective_date, amount, 0.0, True))
-            elif is_other_charge:
+            elif category == "other_charge":
                 other_charges += amount
                 lines.append(self._move_line(move, effective_date, amount, 0.0, False))
-            elif is_credit_note:
+            elif category == "credit_note":
                 payments += amount
                 lines.append(self._move_line(move, effective_date, 0.0, amount, False))
 
@@ -271,21 +273,11 @@ class MayanCustomerStatementWizard(models.TransientModel):
         return False
 
     @api.model
-    def _is_recargo_move(self, move):
-        if move.move_type != "out_invoice":
-            return False
-        for line in move.invoice_line_ids.filtered(lambda item: not item.display_type):
-            product = line.product_id
-            product_name = self._normalize(product.name if product else "")
-            product_code = self._normalize(product.default_code if product else "")
-            line_name = self._normalize(line.name)
-            if (
-                product_name == "RECARGO"
-                or product_code == "RECARGO"
-                or line_name == "RECARGO"
-                or line_name.startswith("RECARGO ")
-            ):
-                return True
+    def _statement_move_category(self, move_type, is_purchase):
+        if move_type == "out_refund":
+            return "credit_note"
+        if move_type == "out_invoice":
+            return "purchase" if is_purchase else "other_charge"
         return False
 
     def _move_line(self, move, effective_date, debit, credit, use_fel):

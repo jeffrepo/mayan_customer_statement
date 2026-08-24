@@ -154,12 +154,12 @@ def _move_category(wizard, move, pos_orders, identify_field):
             for order in pos_orders
         )
     )
-    is_other_charge = wizard._is_recargo_move(move)
-    if move.move_type == "out_refund":
+    category = wizard._statement_move_category(move.move_type, is_purchase)
+    if category == "credit_note":
         return "nota_credito", True
-    if is_purchase:
+    if category == "purchase":
         return "compras_cadis", True
-    if is_other_charge:
+    if category == "other_charge":
         return "otros_cargos", True
     return "no_incluida", False
 

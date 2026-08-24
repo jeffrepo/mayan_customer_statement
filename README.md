@@ -40,8 +40,9 @@ usa como respaldo estos nombres normalizados:
 
 ### Otros cargos
 
-Se incluyen facturas/notas de cargo internas que contengan el producto o una
-línea denominada `Recargo`.
+Se incluyen todas las demás facturas de cliente publicadas en el periodo que
+no fueron clasificadas como compras y cadis. Esto abarca cuotas, cargos
+internos y consumos POS pagados con un método que no identifica al cliente.
 
 ### Pagos
 
@@ -64,7 +65,8 @@ periodo.
 2. Actualizar la lista de aplicaciones.
 3. Instalar **Estado de cuenta de clientes - Mayan Golf**.
 4. Verificar que los métodos POS de crédito tengan habilitado **Identificar
-   Cliente** y que el producto de recargo se denomine `Recargo`.
+   Cliente** para que sus facturas aparezcan en **Compras y cadis**. Las demás
+   facturas aparecerán en **Otros cargos**.
 
 Actualización por línea de comandos:
 
@@ -94,6 +96,7 @@ Primero actualice el addon en la base de datos. Para diagnosticar al socio 1836
 en junio de 2026 y compararlo con el reporte histórico entregado:
 
 ```bash
+STATEMENT_COMPANY_ID=2 \
 STATEMENT_PARTNER_CODE=1836 \
 STATEMENT_YEAR=2026 \
 STATEMENT_MONTH=6 \
@@ -104,6 +107,10 @@ STATEMENT_REFERENCE_CLOSING=7018.40 \
 odoo-bin shell -d NOMBRE_BD \
   < scripts/diagnose_statement_rollforward.py
 ```
+
+En la base de prueba de Mayan, la asociación utilizada por el reporte es la
+compañía 2. Definirla expresamente evita que la shell tome otra compañía activa
+con un nombre similar y devuelva movimientos en cero.
 
 Esa referencia histórica incluye el recibo `PPCRCC/2026/00587` por Q 7,811.10.
 El diagnóstico permitirá confirmar si existe en `account.payment`, si su estado
