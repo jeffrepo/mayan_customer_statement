@@ -1,5 +1,4 @@
 import calendar
-import unicodedata
 from datetime import date
 
 from dateutil.relativedelta import relativedelta
@@ -22,21 +21,6 @@ MONTH_SELECTION = [
     ("11", "Noviembre"),
     ("12", "Diciembre"),
 ]
-
-PAYMENT_METHOD_FIELD_CANDIDATES = (
-    "identificar_cliente",
-    "identify_customer",
-    "identifica_cliente",
-    "is_customer_identification",
-)
-
-FALLBACK_CREDIT_METHOD_NAMES = {
-    "CREDITO RES",
-    "CREDITO PIS",
-    "CREDITO RAN",
-    "CREDITO SERVICIOS",
-}
-
 
 class MayanCustomerStatementWizard(models.TransientModel):
     _name = "mayan.customer.statement.wizard"
@@ -122,69 +106,29 @@ class MayanCustomerStatementWizard(models.TransientModel):
 
     def _build_partner_statement(self, partner, date_from, date_to):
         moves = self._get_moves(partner, date_to)
-        pos_orders_by_move = self._get_pos_orders_by_move(moves)
-        previous_balance = 0.0
-        purchases = 0.0
-        other_charges = 0.0
-        payments = 0.0
-        lines = []
-        identify_field = self._identify_customer_field()
-
-        for move in moves:
-            effective_date = self._move_effective_date(move)
-            if not effective_date:
-                continue
-            amount = abs(move.amount_total_signed)
-            pos_orders = pos_orders_by_move.get(move.id, self.env["pos.order"])
-            is_purchase = (
-                move.move_type == "out_invoice"
-                and bool(pos_orders)
-                and any(
-                    self._pos_order_is_statement_purchase(order, identify_field)
-                    for order in pos_orders
-                )
-            )
-            category = self._statement_move_category(
-                move.move_type,
-                is_purchase,
-            )
-
-            if effective_date < date_from:
-                # El saldo inicial debe arrastrar toda la cuenta por cobrar del
-                # cliente, no solo las dos categorías mostradas en el mes. Los
-                # pagos históricos también abarcan la cuenta completa; excluir
-                # cuotas u otras facturas generaría un saldo negativo artificial.
-                if move.move_type == "out_invoice":
-                    previous_balance += amount
-                elif move.move_type == "out_refund":
-                    previous_balance -= amount
-                continue
-
-            if category == "purchase":
-                purchases += amount
-                lines.append(self._move_line(move, effective_date, amount, 0.0, True))
-            elif category == "other_charge":
-                other_charges += amount
-                lines.append(self._move_line(move, effective_date, amount, 0.0, False))
-            elif category == "credit_note":
-                payments += amount
-                lines.append(self._move_line(move, effective_date, 0.0, amount, False))
-
-        for payment in self._get_payments(partner, date_to):
-            amount = abs(payment.amount_company_currency_signed)
-            if payment.date < date_from:
-                previous_balance -= amount
-                continue
-            payments += amount
-            lines.append(self._payment_line(payment, amount))
+        payments = self._get_payments(partner, date_to)
+        previous_balance = self._previous_month_closing(
+            partner,
+            date_from,
+            moves,
+            payments,
+        )
+        period = self._period_activity(
+            partner,
+            date_from,
+            date_to,
+            include_lines=True,
+            moves=moves,
+            payments=payments,
+        )
 
         summary = self._compute_summary(
             previous_balance,
-            purchases,
-            other_charges,
-            payments,
+            period["purchases"],
+            period["other_charges"],
+            period["payments"],
         )
-        lines.sort(key=lambda line: line["sort_key"])
+        lines = period["lines"]
         bank = self.company_id.partner_id.bank_ids[:1]
         return {
             **summary,
@@ -200,6 +144,112 @@ class MayanCustomerStatementWizard(models.TransientModel):
             "total_debit": sum(line["debit"] for line in lines),
             "total_credit": sum(line["credit"] for line in lines),
             "generated_on": fields.Date.context_today(self).strftime("%d/%m/%Y"),
+        }
+
+    def _previous_month_closing(self, partner, date_from, moves, payments):
+        previous_date_from, previous_date_to = self._previous_period_dates(date_from)
+        opening_date_to = previous_date_from - relativedelta(days=1)
+
+        historical = self._period_activity(
+            partner,
+            False,
+            opening_date_to,
+            include_lines=False,
+            moves=moves,
+            payments=payments,
+        )
+        previous_opening = self._compute_summary(
+            0.0,
+            historical["purchases"],
+            historical["other_charges"],
+            historical["payments"],
+        )["saldo_corte"]
+
+        previous_period = self._period_activity(
+            partner,
+            previous_date_from,
+            previous_date_to,
+            include_lines=False,
+            moves=moves,
+            payments=payments,
+        )
+        return self._compute_summary(
+            previous_opening,
+            previous_period["purchases"],
+            previous_period["other_charges"],
+            previous_period["payments"],
+        )["saldo_corte"]
+
+    @api.model
+    def _previous_period_dates(self, date_from):
+        previous_date_to = date_from - relativedelta(days=1)
+        return previous_date_to.replace(day=1), previous_date_to
+
+    def _period_activity(
+        self,
+        partner,
+        date_from,
+        date_to,
+        include_lines,
+        moves=None,
+        payments=None,
+    ):
+        purchases = 0.0
+        other_charges = 0.0
+        payment_total = 0.0
+        lines = []
+
+        moves = moves if moves is not None else self._get_moves(partner, date_to)
+        payment_records = (
+            payments
+            if payments is not None
+            else self._get_payments(partner, date_to)
+        )
+
+        for move in moves:
+            effective_date = self._move_effective_date(move)
+            if (
+                not effective_date
+                or effective_date > date_to
+                or (date_from and effective_date < date_from)
+            ):
+                continue
+
+            amount = abs(move.amount_total_signed)
+            category = self._statement_move_category(move)
+            if category == "purchase":
+                purchases += amount
+                if include_lines:
+                    lines.append(
+                        self._move_line(move, effective_date, amount, 0.0, True)
+                    )
+            elif category == "other_charge":
+                other_charges += amount
+                if include_lines:
+                    lines.append(
+                        self._move_line(move, effective_date, amount, 0.0, False)
+                    )
+            elif category == "credit_note":
+                payment_total += amount
+                if include_lines:
+                    lines.append(
+                        self._move_line(move, effective_date, 0.0, amount, False)
+                    )
+
+        for payment in payment_records:
+            if payment.date > date_to or (date_from and payment.date < date_from):
+                continue
+            amount = abs(payment.amount_company_currency_signed)
+            payment_total += amount
+            if include_lines:
+                lines.append(self._payment_line(payment, amount))
+
+        lines.sort(key=lambda line: line["sort_key"])
+        return {
+            "purchases": purchases,
+            "other_charges": other_charges,
+            "payments": payment_total,
+            "lines": lines,
         }
 
     def _get_moves(self, partner, date_to):
@@ -235,49 +285,16 @@ class MayanCustomerStatementWizard(models.TransientModel):
             order="date, name, id",
         )
 
-    def _get_pos_orders_by_move(self, moves):
-        result = {}
-        orders = self.env["pos.order"].sudo().search(
-            [("account_move", "in", moves.ids)]
-        )
-        for order in orders:
-            result.setdefault(order.account_move.id, orders.browse())
-            result[order.account_move.id] |= order
-        return result
-
-    def _pos_order_is_statement_purchase(self, order, identify_field):
-        payment_methods = order.payment_ids.payment_method_id
-        if identify_field:
-            return any(method[identify_field] for method in payment_methods)
-        return any(
-            self._normalize(method.name) in FALLBACK_CREDIT_METHOD_NAMES
-            for method in payment_methods
-        )
-
     @api.model
-    def _identify_customer_field(self):
-        PaymentMethod = self.env["pos.payment.method"]
-        for field_name in PAYMENT_METHOD_FIELD_CANDIDATES:
-            field = PaymentMethod._fields.get(field_name)
-            if field and field.type == "boolean":
-                return field_name
-        for field_name, field in PaymentMethod._fields.items():
-            if field.type != "boolean":
-                continue
-            label = self._normalize(field.string)
-            if (
-                ("IDENTIFIC" in label and "CLIENTE" in label)
-                or ("IDENTIFY" in label and "CUSTOMER" in label)
-            ):
-                return field_name
-        return False
-
-    @api.model
-    def _statement_move_category(self, move_type, is_purchase):
-        if move_type == "out_refund":
+    def _statement_move_category(self, move):
+        if move.move_type == "out_refund":
             return "credit_note"
-        if move_type == "out_invoice":
-            return "purchase" if is_purchase else "other_charge"
+        if move.move_type == "out_invoice":
+            return (
+                "other_charge"
+                if move.journal_id.mayan_otros_cargos
+                else "purchase"
+            )
         return False
 
     def _move_line(self, move, effective_date, debit, credit, use_fel):
@@ -348,13 +365,3 @@ class MayanCustomerStatementWizard(models.TransientModel):
         if bank.acc_number:
             label = "%s - %s" % (label, bank.acc_number) if label else bank.acc_number
         return label
-
-    @api.model
-    def _normalize(self, value):
-        value = value or ""
-        normalized = unicodedata.normalize("NFKD", str(value))
-        return " ".join(
-            "".join(character for character in normalized if not unicodedata.combining(character))
-            .upper()
-            .split()
-        )

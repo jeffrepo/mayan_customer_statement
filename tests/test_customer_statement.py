@@ -1,3 +1,6 @@
+from datetime import date
+from unittest.mock import MagicMock
+
 from dateutil.relativedelta import relativedelta
 
 from odoo import fields
@@ -26,24 +29,44 @@ class TestMayanCustomerStatement(TransactionCase):
     def test_summary_matches_july_comparison(self):
         summary = self.Wizard._compute_summary(
             7018.40,
-            3016.20,
-            4441.30,
+            3239.50,
+            4218.00,
             10728.40,
         )
         self.assertAlmostEqual(summary["subtotal_cargos"], 7457.50, places=2)
         self.assertAlmostEqual(summary["saldo_corte"], 3747.50, places=2)
 
-    def test_all_non_pos_invoices_are_other_charges(self):
+    def test_previous_period_dates_cross_year_boundary(self):
+        date_from, date_to = self.Wizard._previous_period_dates(date(2026, 1, 1))
+        self.assertEqual(date_from, date(2025, 12, 1))
+        self.assertEqual(date_to, date(2025, 12, 31))
+
+    def test_journal_flag_controls_invoice_category(self):
+        self.assertIn(
+            "mayan_otros_cargos",
+            self.env["account.journal"]._fields,
+        )
+
+        purchase = MagicMock()
+        purchase.move_type = "out_invoice"
+        purchase.journal_id.mayan_otros_cargos = False
         self.assertEqual(
-            self.Wizard._statement_move_category("out_invoice", True),
+            self.Wizard._statement_move_category(purchase),
             "purchase",
         )
+
+        other_charge = MagicMock()
+        other_charge.move_type = "out_invoice"
+        other_charge.journal_id.mayan_otros_cargos = True
         self.assertEqual(
-            self.Wizard._statement_move_category("out_invoice", False),
+            self.Wizard._statement_move_category(other_charge),
             "other_charge",
         )
+
+        credit_note = MagicMock()
+        credit_note.move_type = "out_refund"
         self.assertEqual(
-            self.Wizard._statement_move_category("out_refund", False),
+            self.Wizard._statement_move_category(credit_note),
             "credit_note",
         )
 

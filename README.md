@@ -28,21 +28,14 @@ repositorio es directamente la raíz del addon.
 
 ### Compras y cadis
 
-Se incluyen facturas POS enlazadas a una orden que tenga al menos un método de
-pago con el booleano **Identificar Cliente** habilitado. El addon detecta el
-campo por su nombre técnico conocido o por su etiqueta. Si el campo no existe,
-usa como respaldo estos nombres normalizados:
-
-- CREDITO RES
-- CREDITO PIS
-- CREDITO RAN
-- CREDITO SERVICIOS
+Se incluyen las facturas de cliente publicadas cuyo diario contable no tenga
+marcado **Otros cargos**.
 
 ### Otros cargos
 
-Se incluyen todas las demás facturas de cliente publicadas en el periodo que
-no fueron clasificadas como compras y cadis. Esto abarca cuotas, cargos
-internos y consumos POS pagados con un método que no identifica al cliente.
+Se incluyen las facturas de cliente publicadas cuyo diario contable tenga
+marcado **Otros cargos**. El checkbox se configura en
+**Contabilidad > Configuración > Diarios**.
 
 ### Pagos
 
@@ -52,7 +45,8 @@ periodo.
 ### Fórmulas del resumen
 
 - **Saldo anterior:** todas las facturas del cliente menos notas de crédito y
-  pagos anteriores al primer día del mes solicitado. Para las facturas se
+  pagos hasta el cierre del mes previo. Se recalcula el estado de cuenta del
+  mes anterior con las mismas reglas del mes solicitado; para las facturas se
   respeta `fecha_estado_cuenta` cuando está informada.
 - **Subtotal cargos:** compras y cadis + otros cargos.
 - **Saldo al corte:** saldo anterior + subtotal cargos - pagos.
@@ -64,9 +58,8 @@ periodo.
    interna adicional.
 2. Actualizar la lista de aplicaciones.
 3. Instalar **Estado de cuenta de clientes - Mayan Golf**.
-4. Verificar que los métodos POS de crédito tengan habilitado **Identificar
-   Cliente** para que sus facturas aparezcan en **Compras y cadis**. Las demás
-   facturas aparecerán en **Otros cargos**.
+4. Marcar **Otros cargos** en los diarios de cuotas y
+   cargos internos. Los diarios sin marcar aparecerán en **Compras y cadis**.
 
 Actualización por línea de comandos:
 
@@ -78,7 +71,7 @@ odoo-bin -d NOMBRE_BD -u mayan_customer_statement --stop-after-init
 
 Antes de producción, comparar un cliente y un mes contra el reporte histórico
 de Mayan, verificando especialmente facturas con `fecha_estado_cuenta`, pagos
-multimoneda, notas de crédito y órdenes POS con varios métodos de pago.
+multimoneda, notas de crédito y la configuración de los diarios contables.
 
 ### Diagnóstico de continuidad mensual
 
@@ -86,7 +79,7 @@ El script `scripts/diagnose_statement_rollforward.py` compara, sin modificar
 datos, el saldo al corte de un mes contra el saldo anterior del mes siguiente.
 También lista:
 
-- facturas y notas de crédito con su clasificación en el reporte;
+- facturas y notas de crédito con su diario y clasificación en el reporte;
 - facturas que entran al saldo histórico, pero no a los cargos del mes;
 - pagos incluidos y pagos excluidos por estado o importe;
 - apuntes del mayor contable de cuentas por cobrar;

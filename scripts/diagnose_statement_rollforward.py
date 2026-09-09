@@ -145,16 +145,8 @@ def _wizard(env, company, partner, year, month):
     )
 
 
-def _move_category(wizard, move, pos_orders, identify_field):
-    is_purchase = (
-        move.move_type == "out_invoice"
-        and bool(pos_orders)
-        and any(
-            wizard._pos_order_is_statement_purchase(order, identify_field)
-            for order in pos_orders
-        )
-    )
-    category = wizard._statement_move_category(move.move_type, is_purchase)
+def _move_category(wizard, move):
+    category = wizard._statement_move_category(move)
     if category == "credit_note":
         return "nota_credito", True
     if category == "purchase":
@@ -166,18 +158,13 @@ def _move_category(wizard, move, pos_orders, identify_field):
 
 def _period_analysis(wizard, partner, date_from, date_to):
     moves = wizard._get_moves(partner, date_to)
-    pos_orders_by_move = wizard._get_pos_orders_by_move(moves)
-    identify_field = wizard._identify_customer_field()
     rows = []
 
     for move in moves:
         effective_date = wizard._move_effective_date(move)
         if not effective_date or not date_from <= effective_date <= date_to:
             continue
-        pos_orders = pos_orders_by_move.get(move.id, wizard.env["pos.order"])
-        category, included = _move_category(
-            wizard, move, pos_orders, identify_field
-        )
+        category, included = _move_category(wizard, move)
         amount = abs(move.amount_total_signed)
         rows.append(
             {
@@ -186,9 +173,8 @@ def _period_analysis(wizard, partner, date_from, date_to):
                 "amount": amount,
                 "category": category,
                 "included": included,
-                "pos_methods": ", ".join(
-                    pos_orders.payment_ids.payment_method_id.mapped("name")
-                ),
+                "journal": move.journal_id.display_name,
+                "journal_other_charges": move.journal_id.mayan_otros_cargos,
             }
         )
     return rows
@@ -276,8 +262,13 @@ def _print_moves(currency, rows):
             )
         )
         print("  ref: %s" % (move.ref or "-"))
-        if row["pos_methods"]:
-            print("  metodos POS: %s" % row["pos_methods"])
+        print(
+            "  diario: %s | otros cargos: %s"
+            % (
+                row["journal"],
+                "SI" if row["journal_other_charges"] else "NO",
+            )
+        )
 
 
 def _print_payments(currency, wizard, partner, date_from, date_to):
