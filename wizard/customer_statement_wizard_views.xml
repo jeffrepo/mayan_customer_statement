@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mayan_customer_statement_wizard_form" model="ir.ui.view">
+        <field name="name">mayan.customer.statement.wizard.form</field>
+        <field name="model">mayan.customer.statement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Estado de cuenta Mayan">
+                <group>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="partner_ids" widget="many2many_tags"
+                           options="{'no_create': True, 'no_create_edit': True}"/>
+                    <group col="4">
+                        <field name="year"/>
+                        <field name="month"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print" type="object" string="Generar PDF"
+                            class="btn-primary"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mayan_customer_statement_wizard" model="ir.actions.act_window">
+        <field name="name">Estado de cuenta Mayan</field>
+        <field name="res_model">mayan.customer.statement.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_mayan_customer_statement_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_mayan_customer_statement"
+              name="Estado de cuenta Mayan"
+              parent="account.menu_finance_receivables"
+              action="action_mayan_customer_statement_wizard"
+              groups="account.group_account_readonly,account.group_account_invoice"
+              sequence="90"/>
+</odoo>

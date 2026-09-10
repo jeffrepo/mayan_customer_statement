@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="customer_statement_layout">
+        &lt;!DOCTYPE html&gt;
+        <html t-att-lang="lang and lang.replace('_', '-')"
+              t-att-data-report-margin-top="data_report_margin_top"
+              t-att-data-report-header-spacing="data_report_header_spacing"
+              t-att-data-report-dpi="data_report_dpi"
+              t-att-data-report-landscape="data_report_landscape"
+              t-att-web-base-url="web_base_url">
+            <head>
+                <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+                <meta charset="UTF-8"/>
+                <meta name="viewport" content="initial-scale=1"/>
+                <title><t t-out="title or 'Estado de cuenta Mayan'"/></title>
+                <t t-call-assets="web.report_assets_common"/>
+            </head>
+            <body class="o_body_html container overflow-x-hidden"
+                  t-att-dir="env['res.lang']._get_data(code=lang or env.user.lang).direction or 'ltr'">
+                <div id="wrapwrap">
+                    <main>
+                        <t t-out="0"/>
+                    </main>
+                </div>
+            </body>
+        </html>
+    </template>
+
+    <template id="customer_statement_document">
+        <t t-call="mayan_customer_statement.customer_statement_layout">
+            <style>
+                .mayan-statement {
+                    color: #171717;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 10pt;
+                }
+                .mayan-statement .header-table,
+                .mayan-statement .summary-table,
+                .mayan-statement .detail-table {
+                    border-collapse: collapse;
+                    width: 100%;
+                }
+                .mayan-statement .header-table td {
+                    vertical-align: middle;
+                }
+                .mayan-statement .company-block {
+                    background: #d9dde3;
+                    padding: 8px 10px;
+                }
+                .mayan-statement .logo-cell {
+                    border: 1px solid #333;
+                    text-align: center;
+                    width: 18%;
+                }
+                .mayan-statement .logo-cell img {
+                    max-height: 76px;
+                    max-width: 105px;
+                }
+                .mayan-statement .title {
+                    font-size: 15pt;
+                    font-weight: 700;
+                    margin-bottom: 5px;
+                    text-align: center;
+                }
+                .mayan-statement .small {
+                    font-size: 8.5pt;
+                    line-height: 1.35;
+                }
+                .mayan-statement .customer-block {
+                    background: #1c1c1c;
+                    color: #fff;
+                    line-height: 1.35;
+                    margin-top: 0;
+                    padding: 8px 10px;
+                }
+                .mayan-statement .customer-name {
+                    font-weight: 700;
+                    text-transform: uppercase;
+                }
+                .mayan-statement .customer-code {
+                    border: 1px solid #333;
+                    border-top: 0;
+                    padding: 3px 8px;
+                }
+                .mayan-statement .period-bar {
+                    background: #1c1c1c;
+                    color: #fff;
+                    display: table;
+                    font-size: 12pt;
+                    margin-top: 5px;
+                    padding: 6px 8px;
+                    width: 100%;
+                }
+                .mayan-statement .period-label,
+                .mayan-statement .period-value {
+                    display: table-cell;
+                }
+                .mayan-statement .period-label {
+                    width: 30%;
+                }
+                .mayan-statement .period-value {
+                    font-size: 15pt;
+                    text-align: center;
+                }
+                .mayan-statement .section-title {
+                    background: #1c1c1c;
+                    color: #fff;
+                    font-size: 8.5pt;
+                    font-weight: 700;
+                    margin-top: 7px;
+                    padding: 3px 5px;
+                }
+                .mayan-statement .summary-table td {
+                    border-left: 1px solid #444;
+                    border-right: 1px solid #444;
+                    padding: 3px 8px;
+                }
+                .mayan-statement .summary-table tr:first-child td {
+                    background: #1c1c1c;
+                    color: #fff;
+                }
+                .mayan-statement .summary-table tr:last-child td {
+                    border-bottom: 1px solid #444;
+                    font-weight: 700;
+                }
+                .mayan-statement .summary-label {
+                    width: 72%;
+                }
+                .mayan-statement .amount {
+                    text-align: right;
+                    white-space: nowrap;
+                }
+                .mayan-statement .detail-table {
+                    margin-top: 7px;
+                    table-layout: fixed;
+                }
+                .mayan-statement .detail-table thead {
+                    display: table-header-group;
+                }
+                .mayan-statement .detail-table th {
+                    background: #808181;
+                    color: #fff;
+                    font-weight: 700;
+                    padding: 6px 4px;
+                    text-align: center;
+                }
+                .mayan-statement .detail-table td {
+                    border-bottom: 1px solid #ededed;
+                    padding: 4px;
+                    vertical-align: top;
+                }
+                .mayan-statement .detail-table tr {
+                    page-break-inside: avoid;
+                }
+                .mayan-statement .detail-date { width: 14%; }
+                .mayan-statement .detail-document { width: 23%; }
+                .mayan-statement .detail-description { width: 37%; }
+                .mayan-statement .detail-debit,
+                .mayan-statement .detail-credit { width: 13%; }
+                .mayan-statement .totals-row td {
+                    border-bottom: 0;
+                    border-top: 1px solid #444;
+                    font-weight: 700;
+                    padding-top: 6px;
+                }
+                .mayan-statement .empty-detail {
+                    color: #666;
+                    font-style: italic;
+                    padding: 16px 4px !important;
+                    text-align: center;
+                }
+                .mayan-statement .footer-note {
+                    border-top: 1px solid #777;
+                    font-size: 8pt;
+                    margin-top: 12px;
+                    padding-top: 6px;
+                    text-align: center;
+                }
+            </style>
+
+            <t t-foreach="statements" t-as="statement">
+                <div class="page mayan-statement">
+                    <table class="header-table">
+                        <tr>
+                            <td class="company-block">
+                                <div class="title">ESTADO DE CUENTA DEL CLIENTE</div>
+                                <table style="width: 100%;">
+                                    <tr>
+                                        <td class="small" style="width: 64%;">
+                                            <strong t-out="html_text(statement['company'].name)"/>
+                                            <br/>
+                                            <span t-out="html_text(statement['company_address'])"/>
+                                        </td>
+                                        <td class="small">
+                                            <strong>NIT:</strong>
+                                            <span t-out="html_text(statement['company'].vat or '')"/>
+                                            <br/>
+                                            <t t-if="statement['bank_name']">
+                                                <strong>Banco:</strong>
+                                                <span t-out="html_text(statement['bank_name'])"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class="logo-cell">
+                                <img t-if="statement['company'].logo"
+                                     t-att-src="image_data_uri(statement['company'].logo)"
+                                     alt="Logo"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="customer-block">
+                        <div class="customer-name" t-out="html_text(statement['partner'].name)"/>
+                        <div t-out="html_text(statement['partner_address'])"/>
+                        <div t-if="statement['partner'].vat"
+                             t-out="html_text(statement['partner'].vat)"/>
+                    </div>
+                    <div class="customer-code">
+                        <strong t-out="labels['code']"/>
+                        <span t-out="html_text(statement['partner_code'])"/>
+                    </div>
+
+                    <div class="period-bar">
+                        <span class="period-label">Mes de Cobro:</span>
+                        <span class="period-value" t-out="html_text(statement['period_label'])"/>
+                    </div>
+
+                    <div class="section-title">Resumen de movimientos</div>
+                    <table class="summary-table">
+                        <tbody>
+                            <tr>
+                                <td class="summary-label">Saldo anterior:</td>
+                                <td class="amount" t-out="format_amount(statement['saldo_anterior'], statement['currency'])"/>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">(+) Compras y cadis:</td>
+                                <td class="amount" t-out="format_amount(statement['compras_cadis'], statement['currency'])"/>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">(+) Otros cargos:</td>
+                                <td class="amount" t-out="format_amount(statement['otros_cargos'], statement['currency'])"/>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Subtotal cargos:</td>
+                                <td class="amount" t-out="format_amount(statement['subtotal_cargos'], statement['currency'])"/>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">(-) Pagos:</td>
+                                <td class="amount" t-out="format_amount(statement['pagos'], statement['currency'])"/>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Saldo al corte:</td>
+                                <td class="amount" t-out="format_amount(statement['saldo_corte'], statement['currency'])"/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th class="detail-date">Fecha de consumo</th>
+                                <th class="detail-document">No. Documento</th>
+                                <th class="detail-description" t-out="labels['description']"/>
+                                <th class="detail-debit" t-out="labels['debits']"/>
+                                <th class="detail-credit" t-out="labels['credits']"/>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-if="statement['lines']">
+                                <tr t-foreach="statement['lines']" t-as="line">
+                                    <td t-out="html_text(line['date_label'])"/>
+                                    <td t-out="html_text(line['document'])"/>
+                                    <td t-out="html_text(line['description'])"/>
+                                    <td class="amount">
+                                        <span t-if="line['debit']" t-out="format_amount(line['debit'], statement['currency'])"/>
+                                    </td>
+                                    <td class="amount">
+                                        <span t-if="line['credit']" t-out="format_amount(line['credit'], statement['currency'])"/>
+                                    </td>
+                                </tr>
+                            </t>
+                            <tr t-else="">
+                                <td class="empty-detail" colspan="5">No hay movimientos para el periodo seleccionado.</td>
+                            </tr>
+                            <tr class="totals-row">
+                                <td colspan="3" style="text-align: right;">TOTALES:</td>
+                                <td class="amount" t-out="format_amount(statement['total_debit'], statement['currency'])"/>
+                                <td class="amount" t-out="format_amount(statement['total_credit'], statement['currency'])"/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="footer-note">
+                        Documento generado al
+                        <span t-out="statement['generated_on']"/>.
+                        <span t-out="labels['footer']"/>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
