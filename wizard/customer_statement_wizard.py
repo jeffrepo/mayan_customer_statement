@@ -107,11 +107,18 @@ class MayanCustomerStatementWizard(models.TransientModel):
     def _build_partner_statement(self, partner, date_from, date_to):
         moves = self._get_moves(partner, date_to)
         payments = self._get_payments(partner, date_to)
+        receivable_adjustments = self._get_receivable_adjustments(
+            partner,
+            date_to,
+            moves=moves,
+            payments=payments,
+        )
         previous_balance = self._previous_month_closing(
             partner,
             date_from,
             moves,
             payments,
+            receivable_adjustments,
         )
         period = self._period_activity(
             partner,
@@ -120,6 +127,7 @@ class MayanCustomerStatementWizard(models.TransientModel):
             include_lines=True,
             moves=moves,
             payments=payments,
+            receivable_adjustments=receivable_adjustments,
         )
 
         summary = self._compute_summary(
@@ -146,7 +154,14 @@ class MayanCustomerStatementWizard(models.TransientModel):
             "generated_on": fields.Date.context_today(self).strftime("%d/%m/%Y"),
         }
 
-    def _previous_month_closing(self, partner, date_from, moves, payments):
+    def _previous_month_closing(
+        self,
+        partner,
+        date_from,
+        moves,
+        payments,
+        receivable_adjustments,
+    ):
         previous_date_from, previous_date_to = self._previous_period_dates(date_from)
         opening_date_to = previous_date_from - relativedelta(days=1)
 
@@ -157,6 +172,7 @@ class MayanCustomerStatementWizard(models.TransientModel):
             include_lines=False,
             moves=moves,
             payments=payments,
+            receivable_adjustments=receivable_adjustments,
         )
         previous_opening = self._compute_summary(
             0.0,
@@ -172,6 +188,7 @@ class MayanCustomerStatementWizard(models.TransientModel):
             include_lines=False,
             moves=moves,
             payments=payments,
+            receivable_adjustments=receivable_adjustments,
         )
         return self._compute_summary(
             previous_opening,
@@ -193,6 +210,7 @@ class MayanCustomerStatementWizard(models.TransientModel):
         include_lines,
         moves=None,
         payments=None,
+        receivable_adjustments=None,
     ):
         purchases = 0.0
         other_charges = 0.0
@@ -204,6 +222,16 @@ class MayanCustomerStatementWizard(models.TransientModel):
             payments
             if payments is not None
             else self._get_payments(partner, date_to)
+        )
+        adjustment_lines = (
+            receivable_adjustments
+            if receivable_adjustments is not None
+            else self._get_receivable_adjustments(
+                partner,
+                date_to,
+                moves=moves,
+                payments=payment_records,
+            )
         )
 
         for move in moves:
@@ -243,6 +271,33 @@ class MayanCustomerStatementWizard(models.TransientModel):
             payment_total += amount
             if include_lines:
                 lines.append(self._payment_line(payment, amount))
+
+        for line in adjustment_lines:
+            if line.date > date_to or (date_from and line.date < date_from):
+                continue
+            if self.company_id.currency_id.is_zero(line.balance):
+                continue
+
+            amount = abs(line.balance)
+            category = self._statement_receivable_category(line)
+            if category == "purchase":
+                purchases += amount
+                if include_lines:
+                    lines.append(
+                        self._receivable_adjustment_line(line, amount, 0.0)
+                    )
+            elif category == "other_charge":
+                other_charges += amount
+                if include_lines:
+                    lines.append(
+                        self._receivable_adjustment_line(line, amount, 0.0)
+                    )
+            elif category == "credit":
+                payment_total += amount
+                if include_lines:
+                    lines.append(
+                        self._receivable_adjustment_line(line, 0.0, amount)
+                    )
 
         lines.sort(key=lambda line: line["sort_key"])
         return {
@@ -285,6 +340,41 @@ class MayanCustomerStatementWizard(models.TransientModel):
             order="date, name, id",
         )
 
+    def _get_receivable_adjustments(
+        self,
+        partner,
+        date_to,
+        moves=None,
+        payments=None,
+    ):
+        moves = moves if moves is not None else self._get_moves(partner, date_to)
+        payments = (
+            payments
+            if payments is not None
+            else self._get_payments(partner, date_to)
+        )
+        represented_move_ids = set(moves.ids)
+        if "move_id" in payments._fields:
+            represented_move_ids.update(payments.mapped("move_id").ids)
+
+        domain = [
+            ("company_id", "=", self.company_id.id),
+            ("partner_id", "child_of", partner.commercial_partner_id.id),
+            ("parent_state", "=", "posted"),
+            ("move_id.move_type", "not in", ("out_invoice", "out_refund")),
+            ("account_id.account_type", "=", "asset_receivable"),
+            ("date", "<=", date_to),
+        ]
+        if represented_move_ids:
+            domain.append(("move_id", "not in", list(represented_move_ids)))
+
+        return (
+            self.env["account.move.line"]
+            .sudo()
+            .with_company(self.company_id)
+            .search(domain, order="date, move_name, id")
+        )
+
     @api.model
     def _statement_move_category(self, move):
         if move.move_type == "out_refund":
@@ -293,6 +383,18 @@ class MayanCustomerStatementWizard(models.TransientModel):
             return (
                 "other_charge"
                 if move.journal_id.mayan_otros_cargos
+                else "purchase"
+            )
+        return False
+
+    @api.model
+    def _statement_receivable_category(self, line):
+        if line.balance < 0:
+            return "credit"
+        if line.balance > 0:
+            return (
+                "other_charge"
+                if line.move_id.journal_id.mayan_otros_cargos
                 else "purchase"
             )
         return False
@@ -321,6 +423,19 @@ class MayanCustomerStatementWizard(models.TransientModel):
             "debit": 0.0,
             "credit": amount,
             "sort_key": (payment.date, payment.name or "", payment.id),
+        }
+
+    @api.model
+    def _receivable_adjustment_line(self, line, debit, credit):
+        move = line.move_id
+        return {
+            "date": line.date,
+            "date_label": line.date.strftime("%d/%m/%Y"),
+            "document": move.name or "",
+            "description": line.name or move.ref or _("Ajuste contable"),
+            "debit": debit,
+            "credit": credit,
+            "sort_key": (line.date, move.name or "", line.id),
         }
 
     @api.model

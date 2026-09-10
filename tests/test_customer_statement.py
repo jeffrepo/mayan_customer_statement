@@ -70,6 +70,56 @@ class TestMayanCustomerStatement(TransactionCase):
             "credit_note",
         )
 
+    def test_receivable_entry_is_classified_by_balance_and_journal(self):
+        purchase = MagicMock()
+        purchase.balance = 26.0
+        purchase.move_id.journal_id.mayan_otros_cargos = False
+        self.assertEqual(
+            self.Wizard._statement_receivable_category(purchase),
+            "purchase",
+        )
+
+        other_charge = MagicMock()
+        other_charge.balance = 26.0
+        other_charge.move_id.journal_id.mayan_otros_cargos = True
+        self.assertEqual(
+            self.Wizard._statement_receivable_category(other_charge),
+            "other_charge",
+        )
+
+        credit = MagicMock()
+        credit.balance = -26.0
+        self.assertEqual(
+            self.Wizard._statement_receivable_category(credit),
+            "credit",
+        )
+
+    def test_direct_receivable_entry_rolls_into_next_opening(self):
+        wizard = self.Wizard.new({"company_id": self.env.company.id})
+        adjustment = MagicMock()
+        adjustment.date = date(2025, 4, 15)
+        adjustment.balance = 26.0
+        adjustment.move_id.journal_id.mayan_otros_cargos = False
+
+        period = wizard._period_activity(
+            MagicMock(),
+            False,
+            date(2025, 10, 31),
+            include_lines=False,
+            moves=[],
+            payments=[],
+            receivable_adjustments=[adjustment],
+        )
+        self.assertAlmostEqual(period["purchases"], 26.0, places=2)
+
+        summary = wizard._compute_summary(
+            5428.80,
+            period["purchases"],
+            period["other_charges"],
+            period["payments"],
+        )
+        self.assertAlmostEqual(summary["saldo_corte"], 5454.80, places=2)
+
     def test_report_text_is_safe_ascii_html(self):
         report = self.env[
             "report.mayan_customer_statement.customer_statement_document"

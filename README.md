@@ -13,6 +13,8 @@ repositorio es directamente la raíz del addon.
   cargos, pagos y saldo al corte.
 - Detalle por fecha, número de documento, descripción, débito y crédito.
 - Uso de `fecha_estado_cuenta` para asignar facturas y notas al periodo.
+- Inclusión de asientos directos en cuentas por cobrar que no estén ya
+  representados por una factura, nota de crédito o pago.
 - Número FEL con `fac_serie` y `fac_numero`; las notas internas conservan el
   número de documento de Odoo.
 
@@ -28,26 +30,28 @@ repositorio es directamente la raíz del addon.
 
 ### Compras y cadis
 
-Se incluyen las facturas de cliente publicadas cuyo diario contable no tenga
-marcado **Otros cargos**.
+Se incluyen las facturas de cliente publicadas y los débitos directos en
+cuentas por cobrar cuyo diario contable no tenga marcado **Otros cargos**.
 
 ### Otros cargos
 
-Se incluyen las facturas de cliente publicadas cuyo diario contable tenga
-marcado **Otros cargos**. El checkbox se configura en
+Se incluyen las facturas de cliente publicadas y los débitos directos en
+cuentas por cobrar cuyo diario contable tenga marcado **Otros cargos**. El
+checkbox se configura en
 **Contabilidad > Configuración > Diarios**.
 
 ### Pagos
 
-Se incluyen pagos de cliente recibidos y notas de crédito de cliente del
-periodo.
+Se incluyen pagos de cliente recibidos, notas de crédito y créditos directos
+en cuentas por cobrar del periodo.
 
 ### Fórmulas del resumen
 
-- **Saldo anterior:** todas las facturas del cliente menos notas de crédito y
-  pagos hasta el cierre del mes previo. Se recalcula el estado de cuenta del
-  mes anterior con las mismas reglas del mes solicitado; para las facturas se
-  respeta `fecha_estado_cuenta` cuando está informada.
+- **Saldo anterior:** todas las facturas y débitos directos en cuentas por
+  cobrar, menos notas de crédito, pagos y créditos directos, hasta el cierre
+  del mes previo. Se recalcula el estado de cuenta del mes anterior con las
+  mismas reglas del mes solicitado; para las facturas se respeta
+  `fecha_estado_cuenta` cuando está informada.
 - **Subtotal cargos:** compras y cadis + otros cargos.
 - **Saldo al corte:** saldo anterior + subtotal cargos - pagos.
 
@@ -80,6 +84,7 @@ datos, el saldo al corte de un mes contra el saldo anterior del mes siguiente.
 También lista:
 
 - facturas y notas de crédito con su diario y clasificación en el reporte;
+- asientos directos de cuentas por cobrar y su clasificación por diario;
 - facturas que entran al saldo histórico, pero no a los cargos del mes;
 - pagos incluidos y pagos excluidos por estado o importe;
 - apuntes del mayor contable de cuentas por cobrar;

@@ -271,6 +271,50 @@ def _print_moves(currency, rows):
         )
 
 
+def _print_receivable_adjustments(
+    currency,
+    wizard,
+    partner,
+    date_from,
+    date_to,
+):
+    moves = wizard._get_moves(partner, date_to)
+    payments = wizard._get_payments(partner, date_to)
+    adjustments = wizard._get_receivable_adjustments(
+        partner,
+        date_to,
+        moves=moves,
+        payments=payments,
+    ).filtered(lambda line: date_from <= line.date <= date_to)
+
+    _heading("Apuntes directos de cuentas por cobrar")
+    if not adjustments:
+        print("No se encontraron apuntes directos en el periodo.")
+        return
+
+    for line in adjustments:
+        category = wizard._statement_receivable_category(line)
+        print(
+            "%s | %s | %s | %s | %s"
+            % (
+                line.date.strftime("%d/%m/%Y"),
+                line.move_id.name or "(sin numero)",
+                line.name or line.move_id.ref or "-",
+                category,
+                _money(currency, line.balance),
+            )
+        )
+        print(
+            "  diario: %s | otros cargos: %s"
+            % (
+                line.move_id.journal_id.display_name,
+                "SI"
+                if line.move_id.journal_id.mayan_otros_cargos
+                else "NO",
+            )
+        )
+
+
 def _print_payments(currency, wizard, partner, date_from, date_to):
     _heading("Pagos de cliente del mes")
     included = wizard._get_payments(partner, date_to).filtered(
@@ -442,6 +486,13 @@ def main(env):
     _print_summary(currency, statement, date_from, date_to)
     _print_reference(currency, statement)
     _print_moves(currency, rows)
+    _print_receivable_adjustments(
+        currency,
+        wizard,
+        partner,
+        date_from,
+        date_to,
+    )
     _print_payments(currency, wizard, partner, date_from, date_to)
     _print_receivable_ledger(currency, opening_lines, period_lines)
     _print_continuity(
