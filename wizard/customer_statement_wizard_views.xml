@@ -14,9 +14,48 @@
                         <field name="month"/>
                     </group>
                 </group>
+                <notebook>
+                    <page string="Historial de correos">
+                        <div class="text-muted mb-2">
+                            El historial corresponde a los socios y al período seleccionados.
+                        </div>
+                        <group col="6">
+                            <field name="email_sent_count" readonly="1"/>
+                            <field name="email_queued_count" readonly="1"/>
+                            <field name="email_failed_count" readonly="1"/>
+                        </group>
+                        <field name="email_log_ids" nolabel="1" readonly="1">
+                            <list create="0" edit="0" delete="0"
+                                  default_order="create_date desc, id desc">
+                                <field name="create_date" string="Intento"/>
+                                <field name="partner_id"/>
+                                <field name="recipient"/>
+                                <field name="subject" optional="hide"/>
+                                <field name="state" widget="badge"
+                                       decoration-success="state == 'sent'"
+                                       decoration-info="state == 'queued'"
+                                       decoration-danger="state == 'failed'"/>
+                                <field name="sent_at" optional="show"/>
+                                <field name="user_id" optional="hide"/>
+                                <field name="failure_reason" optional="show"/>
+                                <field name="attachment_id" column_invisible="1"/>
+                                <button name="action_download_attachment"
+                                        type="object"
+                                        string="PDF"
+                                        icon="fa-download"
+                                        invisible="not attachment_id"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
                 <footer>
+                    <button name="action_send_statements" type="object"
+                            string="Enviar estado de cuenta"
+                            class="btn-primary"
+                            groups="account.group_account_invoice"
+                            confirm="Se generará y enviará un PDF individual a cada socio seleccionado. ¿Desea continuar?"/>
                     <button name="action_print" type="object" string="Generar PDF"
-                            class="btn-primary"/>
+                            class="btn-secondary"/>
                     <button string="Cancelar" special="cancel" class="btn-secondary"/>
                 </footer>
             </form>

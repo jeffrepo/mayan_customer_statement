@@ -1,10 +1,12 @@
+import base64
 import calendar
+import re
 from datetime import date
 
 from dateutil.relativedelta import relativedelta
 
-from odoo import _, api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo import _, api, fields, models, tools
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 MONTH_SELECTION = [
@@ -21,6 +23,7 @@ MONTH_SELECTION = [
     ("11", "Noviembre"),
     ("12", "Diciembre"),
 ]
+
 
 class MayanCustomerStatementWizard(models.TransientModel):
     _name = "mayan.customer.statement.wizard"
@@ -57,6 +60,55 @@ class MayanCustomerStatementWizard(models.TransientModel):
         required=True,
         default=lambda self: str(self._default_period().month),
     )
+    email_log_ids = fields.Many2many(
+        "mayan.customer.statement.email.log",
+        string="Historial de correos",
+        compute="_compute_email_history",
+    )
+    email_sent_count = fields.Integer(
+        string="Enviados",
+        compute="_compute_email_history",
+    )
+    email_queued_count = fields.Integer(
+        string="En cola",
+        compute="_compute_email_history",
+    )
+    email_failed_count = fields.Integer(
+        string="Con error",
+        compute="_compute_email_history",
+    )
+
+    @api.depends("company_id", "partner_ids", "year", "month")
+    def _compute_email_history(self):
+        EmailLog = self.env["mayan.customer.statement.email.log"]
+        for wizard in self:
+            logs = EmailLog.browse()
+            if (
+                wizard.company_id
+                and wizard.partner_ids
+                and wizard.year
+                and wizard.month
+            ):
+                logs = EmailLog.search(
+                    [
+                        ("company_id", "=", wizard.company_id.id),
+                        ("partner_id", "in", wizard.partner_ids.ids),
+                        ("year", "=", wizard.year),
+                        ("month", "=", wizard.month),
+                    ],
+                    order="create_date desc, id desc",
+                    limit=500,
+                )
+            wizard.email_log_ids = logs
+            wizard.email_sent_count = len(
+                logs.filtered(lambda log: log.state == "sent")
+            )
+            wizard.email_queued_count = len(
+                logs.filtered(lambda log: log.state == "queued")
+            )
+            wizard.email_failed_count = len(
+                logs.filtered(lambda log: log.state == "failed")
+            )
 
     @api.constrains("year")
     def _check_year(self):
@@ -71,6 +123,190 @@ class MayanCustomerStatementWizard(models.TransientModel):
         return self.env.ref(
             "mayan_customer_statement.action_customer_statement_report"
         ).report_action(self)
+
+    def action_send_statements(self):
+        self.ensure_one()
+        if not self.env.user.has_group("account.group_account_invoice"):
+            raise AccessError(
+                _("No tiene permisos para enviar estados de cuenta por correo.")
+            )
+        if not self.partner_ids:
+            raise UserError(_("Seleccione al menos un cliente."))
+
+        template = self.env.ref(
+            "mayan_customer_statement.mail_template_customer_statement",
+            raise_if_not_found=False,
+        )
+        if not template:
+            raise UserError(
+                _("No se encontró la plantilla de correo del estado de cuenta.")
+            )
+
+        EmailLog = self.env["mayan.customer.statement.email.log"]
+        period_label = "%s %s" % (dict(MONTH_SELECTION)[self.month], self.year)
+        email_from = (
+            self.company_id.partner_id.email_formatted
+            or self.env.user.email_formatted
+            or False
+        )
+        partners = self.partner_ids.sorted(
+            key=lambda partner: (partner.name or "", partner.id)
+        )
+
+        for partner in partners:
+            recipient = self._statement_recipient(partner)
+            subject = _("Estado de cuenta - %(partner)s - %(period)s") % {
+                "partner": partner.name,
+                "period": period_label,
+            }
+            log = EmailLog.create(
+                {
+                    "partner_id": partner.id,
+                    "company_id": self.company_id.id,
+                    "year": self.year,
+                    "month": self.month,
+                    "recipient": recipient or _("Sin correo configurado"),
+                    "subject": subject,
+                    "state": "queued",
+                    "user_id": self.env.user.id,
+                }
+            )
+            if not recipient:
+                log.write(
+                    {
+                        "state": "failed",
+                        "failure_reason": _(
+                            "El socio no tiene una dirección de correo válida."
+                        ),
+                    }
+                )
+                continue
+
+            try:
+                result_values = {}
+                with self.env.cr.savepoint():
+                    individual_wizard = self.create(
+                        {
+                            "company_id": self.company_id.id,
+                            "partner_ids": [(6, 0, [partner.id])],
+                            "year": self.year,
+                            "month": self.month,
+                        }
+                    )
+                    pdf_content, output_format = self.env[
+                        "ir.actions.report"
+                    ]._render_qweb_pdf(
+                        "mayan_customer_statement.action_customer_statement_report",
+                        res_ids=individual_wizard.ids,
+                    )
+                    if output_format != "pdf":
+                        raise UserError(
+                            _("Odoo no pudo generar el estado de cuenta en PDF.")
+                        )
+
+                    filename = self._statement_filename(partner)
+                    email_values = {
+                        "email_to": recipient,
+                        "recipient_ids": [(4, partner.id)],
+                        "subject": subject,
+                        "attachments": [
+                            (filename, base64.b64encode(pdf_content))
+                        ],
+                        "auto_delete": False,
+                    }
+                    if email_from:
+                        email_values["email_from"] = email_from
+
+                    mail_id = (
+                        template.with_company(self.company_id)
+                        .with_context(lang=partner.lang or self.env.lang)
+                        .send_mail(
+                            partner.id,
+                            force_send=True,
+                            raise_exception=False,
+                            email_values=email_values,
+                        )
+                    )
+                    mail = self.env["mail.mail"].sudo().browse(mail_id).exists()
+                    attachment = mail.attachment_ids.filtered(
+                        lambda item: item.name == filename
+                    )[:1]
+                    if not attachment:
+                        attachment = mail.attachment_ids[:1]
+                    result_values = self._email_log_result_values(mail)
+                    result_values.update(
+                        {
+                            "mail_id": mail.id if mail else False,
+                            "attachment_id": attachment.id if attachment else False,
+                        }
+                    )
+                    individual_wizard.unlink()
+                log.write(result_values)
+            except Exception as error:  # keep sending the remaining partners
+                log.write(
+                    {
+                        "state": "failed",
+                        "failure_reason": tools.ustr(error),
+                    }
+                )
+
+        self.invalidate_recordset(
+            [
+                "email_log_ids",
+                "email_sent_count",
+                "email_queued_count",
+                "email_failed_count",
+            ]
+        )
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "mayan_customer_statement.action_mayan_customer_statement_wizard"
+        )
+        action["res_id"] = self.id
+        action["target"] = "new"
+        return action
+
+    @api.model
+    def _statement_recipient(self, partner):
+        emails = tools.email_split(partner.email or "")
+        if not emails:
+            emails = tools.email_split(partner.commercial_partner_id.email or "")
+        return ", ".join(emails)
+
+    def _statement_filename(self, partner):
+        self.ensure_one()
+        partner_label = self._partner_code(partner) or partner.name or str(partner.id)
+        safe_label = re.sub(r"[^A-Za-z0-9_.-]+", "_", partner_label).strip("_.")
+        safe_label = safe_label or str(partner.id)
+        return "Estado_de_cuenta_%s_%s_%02d.pdf" % (
+            safe_label,
+            self.year,
+            int(self.month),
+        )
+
+    @api.model
+    def _email_log_result_values(self, mail):
+        if not mail:
+            return {
+                "state": "failed",
+                "failure_reason": _("Odoo no creó el correo saliente."),
+            }
+        if mail.state in ("sent", "received"):
+            return {
+                "state": "sent",
+                "sent_at": fields.Datetime.now(),
+                "failure_reason": False,
+            }
+        if mail.state == "outgoing":
+            return {
+                "state": "queued",
+                "failure_reason": False,
+            }
+        return {
+            "state": "failed",
+            "failure_reason": mail.failure_reason
+            or _("El correo terminó con estado: %s")
+            % (mail.state or _("desconocido")),
+        }
 
     @api.model
     def _compute_summary(self, previous_balance, purchases, other_charges, payments):

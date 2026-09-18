@@ -127,3 +127,73 @@ class TestMayanCustomerStatement(TransactionCase):
         rendered = str(report._html_text("Jos\u00e9 & <Club>"))
         self.assertEqual(rendered, "Jos&#233; &amp; &lt;Club&gt;")
         self.assertTrue(rendered.isascii())
+
+    def test_statement_recipient_uses_partner_email(self):
+        partner = self.env["res.partner"].create(
+            {
+                "name": "Socio con correo",
+                "email": "socio@example.com",
+            }
+        )
+        self.assertEqual(
+            self.Wizard._statement_recipient(partner),
+            "socio@example.com",
+        )
+
+    def test_statement_filename_is_safe_and_identifies_period(self):
+        partner = self.env["res.partner"].create(
+            {
+                "name": "Socio / Prueba",
+                "ref": "COD/123",
+            }
+        )
+        wizard = self.Wizard.create(
+            {
+                "company_id": self.env.company.id,
+                "partner_ids": [(6, 0, [partner.id])],
+                "year": 2025,
+                "month": "11",
+            }
+        )
+        filename = wizard._statement_filename(partner)
+        self.assertNotIn("/", filename)
+        self.assertTrue(filename.endswith("_2025_11.pdf"))
+
+    def test_email_history_matches_selected_partner_and_period(self):
+        partner = self.env["res.partner"].create(
+            {
+                "name": "Socio historial",
+                "email": "historial@example.com",
+            }
+        )
+        log = self.env["mayan.customer.statement.email.log"].create(
+            {
+                "partner_id": partner.id,
+                "company_id": self.env.company.id,
+                "year": 2025,
+                "month": "11",
+                "recipient": partner.email,
+                "state": "sent",
+                "user_id": self.env.user.id,
+            }
+        )
+        wizard = self.Wizard.create(
+            {
+                "company_id": self.env.company.id,
+                "partner_ids": [(6, 0, [partner.id])],
+                "year": 2025,
+                "month": "11",
+            }
+        )
+        self.assertEqual(wizard.email_log_ids, log)
+        self.assertEqual(wizard.email_sent_count, 1)
+        self.assertEqual(wizard.email_queued_count, 0)
+        self.assertEqual(wizard.email_failed_count, 0)
+
+    def test_sent_mail_is_recorded_as_sent(self):
+        mail = MagicMock()
+        mail.state = "sent"
+        values = self.Wizard._email_log_result_values(mail)
+        self.assertEqual(values["state"], "sent")
+        self.assertTrue(values["sent_at"])
+        self.assertFalse(values["failure_reason"])

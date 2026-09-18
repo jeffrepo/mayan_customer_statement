@@ -9,6 +9,9 @@ repositorio es directamente la raíz del addon.
 - Selección múltiple de clientes, año y mes.
 - El periodo predeterminado es el mes anterior.
 - Generación de un PDF con una página inicial por cliente.
+- Envío de un correo individual por socio con su PDF adjunto.
+- Historial de intentos por socio y periodo, con estado enviado, en cola o
+  error y opción para descargar el PDF generado.
 - Resumen de saldo anterior, compras y cadis, otros cargos, subtotal de
   cargos, pagos y saldo al corte.
 - Detalle por fecha, número de documento, descripción, débito y crédito.
@@ -22,6 +25,7 @@ repositorio es directamente la raíz del addon.
 
 - `account`
 - `account_debit_note`
+- `mail`
 - `point_of_sale`
 - `mayangolf`
 - `l10n_gt_sat`
@@ -64,6 +68,20 @@ en cuentas por cobrar del periodo.
 3. Instalar **Estado de cuenta de clientes - Mayan Golf**.
 4. Marcar **Otros cargos** en los diarios de cuotas y
    cargos internos. Los diarios sin marcar aparecerán en **Compras y cadis**.
+5. Configurar y probar el servidor de correo saliente de Odoo antes del primer
+   envío masivo.
+
+## Envío por correo
+
+En el mismo wizard, seleccione los socios y el periodo y use **Enviar estado de
+cuenta**. El módulo genera un PDF separado para cada socio y usa el correo del
+contacto seleccionado; si este no tiene correo, intenta usar el del contacto
+comercial principal.
+
+El historial visible en el wizard conserva el destinatario, asunto, resultado,
+usuario que realizó el envío y detalle del error. Cuando el correo se creó
+correctamente, el botón **PDF** permite descargar el archivo exacto que se
+adjuntó.
 
 Actualización por línea de comandos:
 
