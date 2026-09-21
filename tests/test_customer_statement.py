@@ -120,6 +120,32 @@ class TestMayanCustomerStatement(TransactionCase):
         )
         self.assertAlmostEqual(summary["saldo_corte"], 5454.80, places=2)
 
+    def test_payment_amount_uses_receivable_credit_when_signed_amount_is_zero(self):
+        payment = MagicMock()
+        payment.company_id.currency_id.is_zero.side_effect = (
+            lambda amount: abs(amount) < 0.001
+        )
+        payment.move_id.line_ids.filtered.return_value.mapped.return_value = [-137.50]
+        payment.amount_company_currency_signed = 0.0
+
+        amount = self.Wizard._payment_company_amount(payment)
+
+        self.assertAlmostEqual(amount, 137.50, places=2)
+        payment.currency_id._convert.assert_not_called()
+
+    def test_payment_amount_falls_back_to_signed_company_amount(self):
+        payment = MagicMock()
+        payment.company_id.currency_id.is_zero.side_effect = (
+            lambda amount: abs(amount) < 0.001
+        )
+        payment.move_id.line_ids.filtered.return_value.mapped.return_value = []
+        payment.amount_company_currency_signed = 85.25
+
+        amount = self.Wizard._payment_company_amount(payment)
+
+        self.assertAlmostEqual(amount, 85.25, places=2)
+        payment.currency_id._convert.assert_not_called()
+
     def test_report_text_is_safe_ascii_html(self):
         report = self.env[
             "report.mayan_customer_statement.customer_statement_document"

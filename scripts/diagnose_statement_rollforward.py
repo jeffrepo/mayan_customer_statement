@@ -203,7 +203,26 @@ def _payment_document(payment):
 
 
 def _payment_company_amount(payment):
-    return abs(payment.amount_company_currency_signed)
+    company_currency = payment.company_id.currency_id
+    receivable_lines = payment.move_id.line_ids.filtered(
+        lambda line: line.account_id.account_type == "asset_receivable"
+    )
+    receivable_amount = abs(sum(receivable_lines.mapped("balance")))
+    if not company_currency.is_zero(receivable_amount):
+        return receivable_amount
+
+    signed_amount = abs(payment.amount_company_currency_signed)
+    if not company_currency.is_zero(signed_amount):
+        return signed_amount
+
+    return abs(
+        payment.currency_id._convert(
+            from_amount=payment.amount,
+            to_currency=company_currency,
+            company=payment.company_id,
+            date=payment.date,
+        )
+    )
 
 
 def _receivable_lines(wizard, partner, date_from, date_to):

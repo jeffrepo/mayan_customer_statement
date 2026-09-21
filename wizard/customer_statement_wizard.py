@@ -503,7 +503,7 @@ class MayanCustomerStatementWizard(models.TransientModel):
         for payment in payment_records:
             if payment.date > date_to or (date_from and payment.date < date_from):
                 continue
-            amount = abs(payment.amount_company_currency_signed)
+            amount = self._payment_company_amount(payment)
             payment_total += amount
             if include_lines:
                 lines.append(self._payment_line(payment, amount))
@@ -574,6 +574,37 @@ class MayanCustomerStatementWizard(models.TransientModel):
                 ("date", "<=", date_to),
             ],
             order="date, name, id",
+        )
+
+    @api.model
+    def _payment_company_amount(self, payment):
+        """Return the payment's real effect on customer receivables.
+
+        Some custom payment journals do not expose a liquidity line that
+        Odoo's ``amount_company_currency_signed`` computation recognizes. In
+        that case the stored signed amount is zero even though the posted move
+        contains a valid receivable credit. The receivable balance is the
+        accounting amount that actually reduces the customer's statement.
+        """
+        company_currency = payment.company_id.currency_id
+        receivable_lines = payment.move_id.line_ids.filtered(
+            lambda line: line.account_id.account_type == "asset_receivable"
+        )
+        receivable_amount = abs(sum(receivable_lines.mapped("balance")))
+        if not company_currency.is_zero(receivable_amount):
+            return receivable_amount
+
+        signed_amount = abs(payment.amount_company_currency_signed)
+        if not company_currency.is_zero(signed_amount):
+            return signed_amount
+
+        return abs(
+            payment.currency_id._convert(
+                from_amount=payment.amount,
+                to_currency=company_currency,
+                company=payment.company_id,
+                date=payment.date,
+            )
         )
 
     def _get_receivable_adjustments(
