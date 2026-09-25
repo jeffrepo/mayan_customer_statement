@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_mayan_customer_statement_partner_list" model="ir.ui.view">
+        <field name="name">mayan.customer.statement.partner.list</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="Socios" default_order="codigo_socio asc, name asc"
+                  create="0" edit="0" delete="0">
+                <field name="codigo_socio" string="Código de socio"/>
+                <field name="name" string="Nombre"/>
+                <field name="vat" optional="show"/>
+                <field name="phone" optional="show"/>
+                <field name="email" optional="show"/>
+            </list>
+        </field>
+    </record>
+
     <record id="view_mayan_customer_statement_wizard_form" model="ir.ui.view">
         <field name="name">mayan.customer.statement.wizard.form</field>
         <field name="model">mayan.customer.statement.wizard</field>
@@ -8,6 +23,7 @@
                 <group>
                     <field name="company_id" groups="base.group_multi_company"/>
                     <field name="partner_ids" widget="many2many_tags"
+                           context="{'tree_view_ref': 'mayan_customer_statement.view_mayan_customer_statement_partner_list'}"
                            options="{'no_create': True, 'no_create_edit': True}"/>
                     <group col="4">
                         <field name="year"/>

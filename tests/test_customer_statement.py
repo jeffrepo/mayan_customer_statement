@@ -36,6 +36,27 @@ class TestMayanCustomerStatement(TransactionCase):
         self.assertAlmostEqual(summary["subtotal_cargos"], 7457.50, places=2)
         self.assertAlmostEqual(summary["saldo_corte"], 3747.50, places=2)
 
+    def test_partner_selector_only_allows_members(self):
+        self.assertEqual(
+            self.Wizard._fields["partner_ids"].domain,
+            [("es_socio", "=", True)],
+        )
+
+    def test_statement_partners_are_sorted_by_numeric_member_code(self):
+        partner_1914 = MagicMock(codigo_socio=1914, name="Alberto", id=10)
+        partner_27 = MagicMock(codigo_socio=27, name="Beatriz", id=20)
+        partner_305 = MagicMock(codigo_socio=305, name="Carlos", id=30)
+
+        partners = sorted(
+            [partner_1914, partner_27, partner_305],
+            key=self.Wizard._partner_statement_sort_key,
+        )
+
+        self.assertEqual(
+            [partner.codigo_socio for partner in partners],
+            [27, 305, 1914],
+        )
+
     def test_previous_period_dates_cross_year_boundary(self):
         date_from, date_to = self.Wizard._previous_period_dates(date(2026, 1, 1))
         self.assertEqual(date_from, date(2025, 12, 1))

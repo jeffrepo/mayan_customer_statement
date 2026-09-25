@@ -45,9 +45,9 @@ class MayanCustomerStatementWizard(models.TransientModel):
         "mayan_customer_statement_wizard_partner_rel",
         "wizard_id",
         "partner_id",
-        string="Clientes",
+        string="Socios",
         required=True,
-        domain=[("customer_rank", ">", 0)],
+        domain=[("es_socio", "=", True)],
     )
     year = fields.Integer(
         string="Año",
@@ -323,17 +323,19 @@ class MayanCustomerStatementWizard(models.TransientModel):
     def _build_statements(self):
         self.ensure_one()
         date_from, date_to = self._period_dates()
-        partners = self.partner_ids.sorted(
-            key=lambda partner: (
-                self._partner_code(partner) or "",
-                partner.name or "",
-                partner.id,
-            )
-        )
+        partners = self.partner_ids.sorted(key=self._partner_statement_sort_key)
         return [
             self._build_partner_statement(partner, date_from, date_to)
             for partner in partners
         ]
+
+    @api.model
+    def _partner_statement_sort_key(self, partner):
+        return (
+            partner.codigo_socio or 0,
+            partner.name or "",
+            partner.id,
+        )
 
     def _period_dates(self):
         month = int(self.month)

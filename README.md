@@ -6,7 +6,9 @@ repositorio es directamente la raíz del addon.
 ## Alcance
 
 - Wizard en **Contabilidad > Clientes > Estado de cuenta Mayan**.
-- Selección múltiple de clientes, año y mes.
+- Selección múltiple de socios (`es_socio`), año y mes, con la ventana de
+  selección ordenada por `codigo_socio` ascendente.
+- Impresión de los socios en orden numérico ascendente por `codigo_socio`.
 - El periodo predeterminado es el mes anterior.
 - Generación de un PDF con una página inicial por cliente.
 - Envío de un correo individual por socio con su PDF adjunto.
