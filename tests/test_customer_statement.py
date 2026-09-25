@@ -197,6 +197,8 @@ class TestMayanCustomerStatement(TransactionCase):
 
         self.assertIn('<div class="article">', report_view.arch)
         self.assertIn("Cargos del Mes", report_view.arch)
+        self.assertIn(".mayan-statement td", report_view.arch)
+        self.assertIn("border: 0", report_view.arch)
 
     def test_statement_recipient_uses_partner_email(self):
         partner = self.env["res.partner"].create(
