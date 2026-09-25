@@ -34,7 +34,7 @@ repositorio es directamente la raíz del addon.
 
 ## Reglas de clasificación
 
-### Compras y cadis
+### Cargos del Mes
 
 Se incluyen las facturas de cliente publicadas y los débitos directos en
 cuentas por cobrar cuyo diario contable no tenga marcado **Otros cargos**.
@@ -58,7 +58,7 @@ en cuentas por cobrar del periodo.
   del mes previo. Se recalcula el estado de cuenta del mes anterior con las
   mismas reglas del mes solicitado; para las facturas se respeta
   `fecha_estado_cuenta` cuando está informada.
-- **Subtotal cargos:** compras y cadis + otros cargos.
+- **Subtotal cargos:** cargos del mes + otros cargos.
 - **Saldo al corte:** saldo anterior + subtotal cargos - pagos.
 
 ## Instalación
@@ -69,7 +69,7 @@ en cuentas por cobrar del periodo.
 2. Actualizar la lista de aplicaciones.
 3. Instalar **Estado de cuenta de clientes - Mayan Golf**.
 4. Marcar **Otros cargos** en los diarios de cuotas y
-   cargos internos. Los diarios sin marcar aparecerán en **Compras y cadis**.
+   cargos internos. Los diarios sin marcar aparecerán en **Cargos del Mes**.
 5. Configurar y probar el servidor de correo saliente de Odoo antes del primer
    envío masivo.
 

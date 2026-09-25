@@ -248,7 +248,7 @@ def _print_summary(currency, statement, date_from, date_to):
     )
     for label, key in (
         ("Saldo anterior", "saldo_anterior"),
-        ("Compras y cadis", "compras_cadis"),
+        ("Cargos del Mes", "compras_cadis"),
         ("Otros cargos", "otros_cargos"),
         ("Subtotal cargos", "subtotal_cargos"),
         ("Pagos", "pagos"),

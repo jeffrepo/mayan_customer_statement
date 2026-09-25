@@ -9,6 +9,6 @@ class AccountJournal(models.Model):
         help=(
             "Las facturas de cliente publicadas en este diario se mostrarán "
             "en Otros cargos. Las facturas de diarios sin marcar se mostrarán "
-            "en Compras y cadis."
+            "en Cargos del Mes."
         ),
     )

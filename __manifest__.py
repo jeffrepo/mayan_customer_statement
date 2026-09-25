@@ -1,7 +1,7 @@
 {
     "name": "Estado de cuenta de clientes - Mayan Golf",
     "summary": "Estado de cuenta mensual clasificado por diario contable",
-    "version": "18.0.3.1.0",
+    "version": "18.0.3.1.1",
     "category": "Accounting/Accounting",
     "license": "LGPL-3",
     "depends": [

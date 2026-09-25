@@ -42,6 +42,21 @@ class TestMayanCustomerStatement(TransactionCase):
             [("es_socio", "=", True)],
         )
 
+    def test_partner_selector_uses_member_code_ordered_list(self):
+        partner_list = self.env.ref(
+            "mayan_customer_statement.view_mayan_customer_statement_partner_list"
+        )
+        wizard_form = self.env.ref(
+            "mayan_customer_statement.view_mayan_customer_statement_wizard_form"
+        )
+
+        self.assertIn(
+            'default_order="codigo_socio asc, name asc"',
+            partner_list.arch,
+        )
+        self.assertIn("list_view_ref", wizard_form.arch)
+        self.assertNotIn("tree_view_ref", wizard_form.arch)
+
     def test_statement_partners_are_sorted_by_numeric_member_code(self):
         partner_1914 = MagicMock(codigo_socio=1914, name="Alberto", id=10)
         partner_27 = MagicMock(codigo_socio=27, name="Beatriz", id=20)
@@ -174,6 +189,14 @@ class TestMayanCustomerStatement(TransactionCase):
         rendered = str(report._html_text("Jos\u00e9 & <Club>"))
         self.assertEqual(rendered, "Jos&#233; &amp; &lt;Club&gt;")
         self.assertTrue(rendered.isascii())
+
+    def test_report_uses_article_wrapper_for_utf8_pdf_rendering(self):
+        report_view = self.env.ref(
+            "mayan_customer_statement.customer_statement_document"
+        )
+
+        self.assertIn('<div class="article">', report_view.arch)
+        self.assertIn("Cargos del Mes", report_view.arch)
 
     def test_statement_recipient_uses_partner_email(self):
         partner = self.env["res.partner"].create(

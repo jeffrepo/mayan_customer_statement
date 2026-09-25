@@ -23,7 +23,7 @@
                 <group>
                     <field name="company_id" groups="base.group_multi_company"/>
                     <field name="partner_ids" widget="many2many_tags"
-                           context="{'tree_view_ref': 'mayan_customer_statement.view_mayan_customer_statement_partner_list'}"
+                           context="{'list_view_ref': 'mayan_customer_statement.view_mayan_customer_statement_partner_list'}"
                            options="{'no_create': True, 'no_create_edit': True}"/>
                     <group col="4">
                         <field name="year"/>

@@ -2,6 +2,7 @@
 <odoo>
     <template id="customer_statement_document">
         <t t-call="web.html_container">
+            <div class="article">
             <style>
                 .mayan-statement {
                     color: #171717;
@@ -213,7 +214,7 @@
                                 <td class="amount" t-out="format_amount(statement['saldo_anterior'], statement['currency'])"/>
                             </tr>
                             <tr>
-                                <td class="summary-label">(+) Compras y cadis:</td>
+                                <td class="summary-label">(+) Cargos del Mes:</td>
                                 <td class="amount" t-out="format_amount(statement['compras_cadis'], statement['currency'])"/>
                             </tr>
                             <tr>
@@ -277,6 +278,7 @@
                     </div>
                 </div>
             </t>
+            </div>
         </t>
     </template>
 </odoo>
