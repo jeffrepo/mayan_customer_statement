@@ -13,7 +13,7 @@
                 .mayan-statement tr,
                 .mayan-statement th,
                 .mayan-statement td {
-                    border: 0;
+                    border: 0 !important;
                 }
                 .mayan-statement-new-page {
                     break-before: page;
@@ -33,7 +33,6 @@
                     padding: 8px 10px;
                 }
                 .mayan-statement .logo-cell {
-                    border: 1px solid #333;
                     text-align: center;
                     width: 18%;
                 }
@@ -96,8 +95,8 @@
                     padding: 3px 5px;
                 }
                 .mayan-statement .summary-table td {
-                    border-left: 1px solid #444;
-                    border-right: 1px solid #444;
+                    border-left: 1px solid #444 !important;
+                    border-right: 1px solid #444 !important;
                     padding: 3px 8px;
                 }
                 .mayan-statement .summary-table tr:first-child td {
@@ -105,7 +104,7 @@
                     color: #fff;
                 }
                 .mayan-statement .summary-table tr:last-child td {
-                    border-bottom: 1px solid #444;
+                    border-bottom: 1px solid #444 !important;
                     font-weight: 700;
                 }
                 .mayan-statement .summary-label {
@@ -130,7 +129,7 @@
                     text-align: center;
                 }
                 .mayan-statement .detail-table td {
-                    border-bottom: 1px solid #ededed;
+                    border-bottom: 1px solid #ededed !important;
                     padding: 4px;
                     vertical-align: top;
                 }
@@ -143,8 +142,7 @@
                 .mayan-statement .detail-debit,
                 .mayan-statement .detail-credit { width: 13%; }
                 .mayan-statement .totals-row td {
-                    border-bottom: 0;
-                    border-top: 1px solid #444;
+                    border: 0 !important;
                     font-weight: 700;
                     padding-top: 6px;
                 }

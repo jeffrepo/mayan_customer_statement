@@ -190,6 +190,13 @@ class TestMayanCustomerStatement(TransactionCase):
         self.assertEqual(rendered, "Jos&#233; &amp; &lt;Club&gt;")
         self.assertTrue(rendered.isascii())
 
+        footer = str(report._html_text("realiz\u00f3, comun\u00edquese, \u00e1rea"))
+        self.assertEqual(
+            footer,
+            "realiz&#243;, comun&#237;quese, &#225;rea",
+        )
+        self.assertTrue(footer.isascii())
+
     def test_report_uses_article_wrapper_for_utf8_pdf_rendering(self):
         report_view = self.env.ref(
             "mayan_customer_statement.customer_statement_document"
@@ -198,7 +205,8 @@ class TestMayanCustomerStatement(TransactionCase):
         self.assertIn('<div class="article">', report_view.arch)
         self.assertIn("Cargos del Mes", report_view.arch)
         self.assertIn(".mayan-statement td", report_view.arch)
-        self.assertIn("border: 0", report_view.arch)
+        self.assertIn("border: 0 !important", report_view.arch)
+        self.assertNotIn("border: 1px solid #333", report_view.arch)
 
     def test_statement_recipient_uses_partner_email(self):
         partner = self.env["res.partner"].create(
