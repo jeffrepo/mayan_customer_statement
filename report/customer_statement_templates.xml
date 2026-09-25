@@ -34,6 +34,10 @@
                     font-family: Arial, Helvetica, sans-serif;
                     font-size: 10pt;
                 }
+                .mayan-statement-new-page {
+                    break-before: page;
+                    page-break-before: always !important;
+                }
                 .mayan-statement .header-table,
                 .mayan-statement .summary-table,
                 .mayan-statement .detail-table {
@@ -179,7 +183,7 @@
             </style>
 
             <t t-foreach="statements" t-as="statement">
-                <div class="page mayan-statement">
+                <div t-att-class="'page mayan-statement' + (' mayan-statement-new-page' if not statement_first else '')">
                     <table class="header-table">
                         <tr>
                             <td class="company-block">
