@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_customer_statement" model="report.paperformat">
+        <field name="name">Estado de cuenta Mayan - Carta</field>
+        <field name="default" eval="False"/>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_customer_statement_report" model="ir.actions.report">
+        <field name="name">Estado de cuenta Mayan</field>
+        <field name="model">mayan.customer.statement.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mayan_customer_statement.customer_statement_document</field>
+        <field name="report_file">mayan_customer_statement.customer_statement_document</field>
+        <field name="paperformat_id" ref="paperformat_customer_statement"/>
+        <field name="print_report_name">'Estados de cuenta - %s_%s' % (object.month, object.year)</field>
+    </record>
+</odoo>
