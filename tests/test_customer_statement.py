@@ -197,16 +197,36 @@ class TestMayanCustomerStatement(TransactionCase):
         )
         self.assertTrue(footer.isascii())
 
-    def test_report_uses_article_wrapper_for_utf8_pdf_rendering(self):
+        labels = str(
+            report._html_text("C\u00d3DIGO, Descripci\u00f3n, D\u00e9bitos, Cr\u00e9ditos")
+        )
+        self.assertEqual(
+            labels,
+            "C&#211;DIGO, Descripci&#243;n, D&#233;bitos, Cr&#233;ditos",
+        )
+        self.assertTrue(labels.isascii())
+
+    def test_report_wraps_each_statement_in_its_own_article(self):
         report_view = self.env.ref(
             "mayan_customer_statement.customer_statement_document"
         )
+        styles_view = self.env.ref(
+            "mayan_customer_statement.customer_statement_styles"
+        )
 
         self.assertIn('<div class="article">', report_view.arch)
-        self.assertIn("Cargos del Mes", report_view.arch)
-        self.assertIn(".mayan-statement td", report_view.arch)
-        self.assertIn("border: 0 !important", report_view.arch)
-        self.assertNotIn("border: 1px solid #333", report_view.arch)
+        self.assertIn('t-foreach="statements"', report_view.arch)
+        self.assertLess(
+            report_view.arch.index('t-foreach="statements"'),
+            report_view.arch.index('<div class="article">'),
+        )
+        self.assertIn("customer_statement_styles", report_view.arch)
+        self.assertNotIn("mayan-statement-new-page", report_view.arch)
+        self.assertIn("Consumos", report_view.arch)
+        self.assertNotIn("Compras y cadis", report_view.arch)
+        self.assertIn(".mayan-statement td", styles_view.arch)
+        self.assertIn("border: 0 !important", styles_view.arch)
+        self.assertNotIn("border: 1px solid #333", styles_view.arch)
 
     def test_statement_recipient_uses_partner_email(self):
         partner = self.env["res.partner"].create(

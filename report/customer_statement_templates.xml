@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="customer_statement_document">
-        <t t-call="web.html_container">
-            <div class="article">
-            <style>
+    <template id="customer_statement_styles">
+        <style>
                 .mayan-statement {
                     color: #171717;
                     font-family: Arial, Helvetica, sans-serif;
@@ -14,10 +12,6 @@
                 .mayan-statement th,
                 .mayan-statement td {
                     border: 0 !important;
-                }
-                .mayan-statement-new-page {
-                    break-before: page;
-                    page-break-before: always !important;
                 }
                 .mayan-statement .header-table,
                 .mayan-statement .summary-table,
@@ -159,10 +153,15 @@
                     padding-top: 6px;
                     text-align: center;
                 }
-            </style>
+        </style>
+    </template>
 
+    <template id="customer_statement_document">
+        <t t-call="web.html_container">
             <t t-foreach="statements" t-as="statement">
-                <div t-att-class="'page mayan-statement' + (' mayan-statement-new-page' if not statement_first else '')">
+                <div class="article">
+                    <t t-call="mayan_customer_statement.customer_statement_styles"/>
+                    <div class="page mayan-statement">
                     <table class="header-table">
                         <tr>
                             <td class="company-block">
@@ -218,7 +217,7 @@
                                 <td class="amount" t-out="format_amount(statement['saldo_anterior'], statement['currency'])"/>
                             </tr>
                             <tr>
-                                <td class="summary-label">(+) Cargos del Mes:</td>
+                                <td class="summary-label">(+) Consumos:</td>
                                 <td class="amount" t-out="format_amount(statement['compras_cadis'], statement['currency'])"/>
                             </tr>
                             <tr>
@@ -280,9 +279,9 @@
                         <span t-out="statement['generated_on']"/>.
                         <span t-out="labels['footer']"/>
                     </div>
+                    </div>
                 </div>
             </t>
-            </div>
         </t>
     </template>
 </odoo>
