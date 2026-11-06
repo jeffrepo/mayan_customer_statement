@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="mail_template_customer_statement" model="mail.template">
+            <field name="name">Estado de cuenta de socio - Mayan Golf</field>
+            <field name="description">Envía el estado de cuenta mensual individual de un socio.</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="subject">Estado de cuenta - {{ object.name }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.email }}</field>
+            <field name="lang">{{ object.lang }}</field>
+            <field name="auto_delete" eval="False"/>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222;">
+                    <p>Estimado/a <t t-out="object.name or ''"/>,</p>
+                    <p>
+                        Adjunto encontrará su estado de cuenta de
+                        Asociación Mayan Golf Club.
+                    </p>
+                    <p>
+                        Si realizó un pago que todavía no aparece en el documento,
+                        comuníquese con el área de Contabilidad.
+                    </p>
+                    <p>Saludos cordiales.</p>
+                </div>
+            </field>
+        </record>
+    </data>
+</odoo>
