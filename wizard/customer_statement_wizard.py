@@ -673,11 +673,25 @@ class MayanCustomerStatementWizard(models.TransientModel):
             "date": effective_date,
             "date_label": effective_date.strftime("%d/%m/%Y"),
             "document": self._move_document(move, use_fel),
-            "description": move.ref or "",
+            "description": self._move_description(move),
             "debit": debit,
             "credit": credit,
             "sort_key": (effective_date, move.name or "", move.id),
         }
+
+    @api.model
+    def _move_description(self, move):
+        """Return the most useful non-empty label available for an invoice."""
+        candidates = (
+            move.ref,
+            move.invoice_origin,
+            move.payment_reference,
+            move.name,
+        )
+        for value in candidates:
+            if value and str(value).strip():
+                return str(value).strip()
+        return _("Factura de cliente")
 
     def _payment_line(self, payment, amount):
         document = ""

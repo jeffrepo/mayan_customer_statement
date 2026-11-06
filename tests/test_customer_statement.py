@@ -72,6 +72,39 @@ class TestMayanCustomerStatement(TransactionCase):
             [27, 305, 1914],
         )
 
+    def test_move_description_uses_non_empty_fallbacks(self):
+        move = MagicMock(
+            ref="MAYAN GOLF - RESTAURANTE-/85759",
+            invoice_origin="POS/00001",
+            payment_reference="Referencia de pago",
+            name="FCPRA/2026/00001",
+        )
+        self.assertEqual(
+            self.Wizard._move_description(move),
+            "MAYAN GOLF - RESTAURANTE-/85759",
+        )
+
+        move.ref = False
+        self.assertEqual(self.Wizard._move_description(move), "POS/00001")
+
+        move.invoice_origin = False
+        self.assertEqual(
+            self.Wizard._move_description(move),
+            "Referencia de pago",
+        )
+
+        move.payment_reference = False
+        self.assertEqual(
+            self.Wizard._move_description(move),
+            "FCPRA/2026/00001",
+        )
+
+        move.name = False
+        self.assertEqual(
+            self.Wizard._move_description(move),
+            "Factura de cliente",
+        )
+
     def test_previous_period_dates_cross_year_boundary(self):
         date_from, date_to = self.Wizard._previous_period_dates(date(2026, 1, 1))
         self.assertEqual(date_from, date(2025, 12, 1))
@@ -222,6 +255,8 @@ class TestMayanCustomerStatement(TransactionCase):
         )
         self.assertIn("customer_statement_styles", report_view.arch)
         self.assertNotIn("mayan-statement-new-page", report_view.arch)
+        self.assertIn("ESTADO DE CUENTA DEL SOCIO", report_view.arch)
+        self.assertNotIn("ESTADO DE CUENTA DEL CLIENTE", report_view.arch)
         self.assertIn("Consumos", report_view.arch)
         self.assertNotIn("Compras y cadis", report_view.arch)
         self.assertIn(".mayan-statement td", styles_view.arch)
