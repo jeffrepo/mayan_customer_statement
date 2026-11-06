@@ -148,10 +148,19 @@
                 }
                 .mayan-statement .footer-note {
                     border-top: 1px solid #777;
-                    font-size: 8pt;
+                    font-size: 9pt;
+                    line-height: 1.35;
                     margin-top: 12px;
+                    page-break-inside: avoid;
                     padding-top: 6px;
                     text-align: center;
+                }
+                .mayan-statement .legal-note {
+                    font-size: 9pt;
+                    line-height: 1.4;
+                    margin-top: 6px;
+                    page-break-inside: avoid;
+                    text-align: justify;
                 }
         </style>
     </template>
@@ -278,6 +287,10 @@
                         Documento generado al
                         <span t-out="statement['generated_on']"/>.
                         <span t-out="labels['footer']"/>
+                    </div>
+                    <div class="legal-note">
+                        <strong>Nota:</strong>
+                        <span t-out="labels['legal_note']"/>
                     </div>
                     </div>
                 </div>

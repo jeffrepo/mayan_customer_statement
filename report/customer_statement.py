@@ -12,7 +12,15 @@ REPORT_LABELS = {
     "credits": "Cr\u00e9ditos",
     "footer": (
         "Si realiz\u00f3 un pago que no aparece en este estado de cuenta, "
-        "comun\u00edquese con el \u00e1rea de Contabilidad."
+        "comun\u00edquese con el \u00e1rea de Contabilidad, correo: "
+        "cuentacorriente@mayangolfclub.com y al n\u00famero de tel\u00e9fono: "
+        "66855800, Ext. 5806"
+    ),
+    "legal_note": (
+        "Los socios tienen obligaci\u00f3n de cubrir mensualmente sus deudas a "
+        "favor de la Tesorer\u00eda del club. Si sus cuentas no fueren cubiertas "
+        "dentro del mes siguiente, la Tesorer\u00eda suspender\u00e1 el cr\u00e9dito "
+        "del socio moroso, notific\u00e1ndole por carta."
     ),
 }
 

@@ -6,6 +6,8 @@ from dateutil.relativedelta import relativedelta
 from odoo import fields
 from odoo.tests import TransactionCase, tagged
 
+from ..report.customer_statement import REPORT_LABELS
+
 
 @tagged("post_install", "-at_install")
 class TestMayanCustomerStatement(TransactionCase):
@@ -239,6 +241,22 @@ class TestMayanCustomerStatement(TransactionCase):
         )
         self.assertTrue(labels.isascii())
 
+        self.assertIn(
+            "cuentacorriente@mayangolfclub.com",
+            REPORT_LABELS["footer"],
+        )
+        self.assertIn("66855800, Ext. 5806", REPORT_LABELS["footer"])
+        self.assertIn(
+            "Los socios tienen obligaci\u00f3n de cubrir mensualmente sus deudas",
+            REPORT_LABELS["legal_note"],
+        )
+        self.assertTrue(
+            str(report._html_text(REPORT_LABELS["footer"])).isascii()
+        )
+        self.assertTrue(
+            str(report._html_text(REPORT_LABELS["legal_note"])).isascii()
+        )
+
     def test_report_wraps_each_statement_in_its_own_article(self):
         report_view = self.env.ref(
             "mayan_customer_statement.customer_statement_document"
@@ -259,9 +277,13 @@ class TestMayanCustomerStatement(TransactionCase):
         self.assertNotIn("ESTADO DE CUENTA DEL CLIENTE", report_view.arch)
         self.assertIn("Consumos", report_view.arch)
         self.assertNotIn("Compras y cadis", report_view.arch)
+        self.assertIn("labels['legal_note']", report_view.arch)
+        self.assertIn("<strong>Nota:</strong>", report_view.arch)
         self.assertIn(".mayan-statement td", styles_view.arch)
         self.assertIn("border: 0 !important", styles_view.arch)
         self.assertNotIn("border: 1px solid #333", styles_view.arch)
+        self.assertIn(".mayan-statement .legal-note", styles_view.arch)
+        self.assertIn("page-break-inside: avoid", styles_view.arch)
 
     def test_statement_recipient_uses_partner_email(self):
         partner = self.env["res.partner"].create(
